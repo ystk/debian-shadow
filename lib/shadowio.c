@@ -33,7 +33,7 @@
 
 #include <config.h>
 
-#ident "$Id: shadowio.c 3142 2010-03-18 09:21:27Z nekral-guest $"
+#ident "$Id: shadowio.c 3296 2011-02-16 20:32:16Z nekral-guest $"
 
 #include "prototypes.h"
 #include "defines.h"
@@ -75,6 +75,12 @@ static void *shadow_parse (const char *line)
 static int shadow_put (const void *ent, FILE * file)
 {
 	const struct spwd *sp = ent;
+
+	if (   (NULL == sp)
+	    || (valid_field (sp->sp_namp, ":\n") == -1)
+	    || (valid_field (sp->sp_pwdp, ":\n") == -1)) {
+		return -1;
+	}
 
 	return (putspent (sp, file) == -1) ? -1 : 0;
 }

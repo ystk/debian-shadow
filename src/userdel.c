@@ -2,7 +2,7 @@
  * Copyright (c) 1991 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2000 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2010, Nicolas François
+ * Copyright (c) 2007 - 2012, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: userdel.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: userdel.c 3743 2012-05-25 11:51:53Z nekral-guest $"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -74,6 +74,7 @@
 #define E_USER_BUSY	8	/* user currently logged in */
 #define E_GRP_UPDATE	10	/* can't update group file */
 #define E_HOMEDIR	12	/* can't remove home directory */
+#define E_SE_UPDATE	14	/* can't update SELinux user mapping */
 
 /*
  * Global variables
@@ -82,10 +83,12 @@ const char *Prog;
 
 static char *user_name;
 static uid_t user_id;
+static gid_t user_gid;
 static char *user_home;
 
 static bool fflg = false;
 static bool rflg = false;
+static bool Zflg = false;
 
 static bool is_shadow_pwd;
 
@@ -100,6 +103,7 @@ static bool spw_locked  = false;
 /* local function prototypes */
 static void usage (int status);
 static void update_groups (void);
+static void remove_usergroup (void);
 static void close_files (void);
 static void fail_exit (int);
 static void open_files (void);
@@ -120,14 +124,22 @@ static int remove_tcbdir (const char *user_name, uid_t user_id);
  */
 static void usage (int status)
 {
-	fputs (_("Usage: userdel [options] LOGIN\n"
-	         "\n"
-	         "Options:\n"
-	         "  -f, --force                   force removal of files,\n"
-	         "                                even if not owned by user\n"
-	         "  -h, --help                    display this help message and exit\n"
-	         "  -r, --remove                  remove home directory and mail spool\n"
-	         "\n"), (E_SUCCESS != status) ? stderr : stdout);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] LOGIN\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -f, --force                   force removal of files,\n"
+	                "                                even if not owned by user\n"),
+	              usageout);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -r, --remove                  remove home directory and mail spool\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+#ifdef WITH_SELINUX
+	(void) fputs (_("  -Z, --selinux-user            remove any SELinux user mapping for the user\n"), usageout);
+#endif				/* WITH_SELINUX */
+	(void) fputs ("\n", usageout);
 	exit (status);
 }
 
@@ -145,10 +157,8 @@ static void update_groups (void)
 {
 	const struct group *grp;
 	struct group *ngrp;
-	struct passwd *pwd;
 
 #ifdef	SHADOWGRP
-	bool deleted_user_group = false;
 	const struct sgrp *sgrp;
 	struct sgrp *nsgrp;
 #endif				/* SHADOWGRP */
@@ -199,69 +209,10 @@ static void update_groups (void)
 			 user_name, ngrp->gr_name));
 	}
 
-	/*
-	 * we've removed their name from all the groups above, so
-	 * now if they have a group with the same name as their
-	 * user name, with no members, we delete it.
-	 * FIXME: below, the check for grp->gr_mem[0] is not sufficient.
-	 *        We should retrieve the group with gr_locate and check
-	 *        that gr_mem is empty.
-	 */
-	grp = xgetgrnam (user_name);
-	if (   (NULL != grp)
-	    && getdef_bool ("USERGROUPS_ENAB")
-	    && (   (NULL == grp->gr_mem[0])
-	        || (   (NULL == grp->gr_mem[1])
-	            && (strcmp (grp->gr_mem[0], user_name) == 0)))) {
-
-		pwd = NULL;
-		if (!fflg) {
-			/*
-			 * Scan the passwd file to check if this group is still
-			 * used as a primary group.
-			 */
-			setpwent ();
-			while ((pwd = getpwent ()) != NULL) {
-				if (strcmp (pwd->pw_name, user_name) == 0) {
-					continue;
-				}
-				if (pwd->pw_gid == grp->gr_gid) {
-					fprintf (stderr,
-					         _("%s: group %s is the primary group of another user and is not removed.\n"),
-					         Prog, grp->gr_name);
-					break;
-				}
-			}
-			endpwent ();
-		}
-
-		if (NULL == pwd) {
-			/*
-			 * We can remove this group, it is not the primary
-			 * group of any remaining user.
-			 */
-			if (gr_remove (grp->gr_name) == 0) {
-				fprintf (stderr,
-				         _("%s: cannot remove entry '%s' from %s\n"),
-				         Prog, grp->gr_name, gr_dbname ());
-				fail_exit (E_GRP_UPDATE);
-			}
-
-#ifdef SHADOWGRP
-			deleted_user_group = true;
-#endif				/* SHADOWGRP */
-
-#ifdef WITH_AUDIT
-			audit_logger (AUDIT_DEL_GROUP, Prog,
-			              "deleting group",
-			              grp->gr_name, AUDIT_NO_ID,
-			              SHADOW_AUDIT_SUCCESS);
-#endif				/* WITH_AUDIT */
-			SYSLOG ((LOG_INFO,
-				 "removed group '%s' owned by '%s'\n",
-				 grp->gr_name, user_name));
-		}
+	if (getdef_bool ("USERGROUPS_ENAB")) {
+		remove_usergroup ();
 	}
+
 #ifdef	SHADOWGRP
 	if (!is_shadow_grp) {
 		return;
@@ -317,19 +268,109 @@ static void update_groups (void)
 		              SHADOW_AUDIT_SUCCESS);
 #endif				/* WITH_AUDIT */
 		SYSLOG ((LOG_INFO, "delete '%s' from shadow group '%s'\n",
-			 user_name, nsgrp->sg_name));
-	}
-
-	if (   deleted_user_group
-	    && (sgr_locate (user_name) != NULL)) {
-		if (sgr_remove (user_name) == 0) {
-			fprintf (stderr,
-			         _("%s: cannot remove entry '%s' from %s\n"),
-			         Prog, user_name, sgr_dbname ());
-			fail_exit (E_GRP_UPDATE);
-		}
+		         user_name, nsgrp->sg_name));
 	}
 #endif				/* SHADOWGRP */
+}
+
+/*
+ * remove_usergroup - delete the user's group if it is a usergroup
+ *
+ *	An usergroup is removed if
+ *	  + it has the same name as the user
+ *	  + it is the primary group of the user
+ *	  + it has no other members
+ *	  + it is not the primary group of any other user
+ */
+static void remove_usergroup (void)
+{
+	const struct group *grp;
+	const struct passwd *pwd = NULL;
+
+	grp = gr_locate (user_name);
+	if (NULL == grp) {
+		/* This user has no usergroup. */
+		return;
+	}
+
+	if (grp->gr_gid != user_gid) {
+		fprintf (stderr,
+		         _("%s: group %s not removed because it is not the primary group of user %s.\n"),
+		         Prog, grp->gr_name, user_name);
+		return;
+	}
+
+	if (NULL != grp->gr_mem[0]) {
+		/* The usergroup has other members. */
+		fprintf (stderr,
+		         _("%s: group %s not removed because it has other members.\n"),
+		         Prog, grp->gr_name);
+		return;
+	}
+
+	if (!fflg) {
+		/*
+		 * Scan the passwd file to check if this group is still
+		 * used as a primary group.
+		 */
+		setpwent ();
+		while ((pwd = getpwent ()) != NULL) {
+			if (strcmp (pwd->pw_name, user_name) == 0) {
+				continue;
+			}
+			if (pwd->pw_gid == grp->gr_gid) {
+				fprintf (stderr,
+				         _("%s: group %s is the primary group of another user and is not removed.\n"),
+				         Prog, grp->gr_name);
+				break;
+			}
+		}
+		endpwent ();
+	}
+
+	if (NULL == pwd) {
+		/*
+		 * We can remove this group, it is not the primary
+		 * group of any remaining user.
+		 */
+		if (gr_remove (user_name) == 0) {
+			fprintf (stderr,
+			         _("%s: cannot remove entry '%s' from %s\n"),
+			         Prog, user_name, gr_dbname ());
+			fail_exit (E_GRP_UPDATE);
+		}
+
+#ifdef WITH_AUDIT
+		audit_logger (AUDIT_DEL_GROUP, Prog,
+		              "deleting group",
+		              user_name, AUDIT_NO_ID,
+		              SHADOW_AUDIT_SUCCESS);
+#endif				/* WITH_AUDIT */
+		SYSLOG ((LOG_INFO,
+		         "removed group '%s' owned by '%s'\n",
+		         user_name, user_name));
+
+#ifdef	SHADOWGRP
+		if (sgr_locate (user_name) != NULL) {
+			if (sgr_remove (user_name) == 0) {
+				fprintf (stderr,
+				         _("%s: cannot remove entry '%s' from %s\n"),
+				         Prog, user_name, sgr_dbname ());
+				fail_exit (E_GRP_UPDATE);
+			}
+#ifdef WITH_AUDIT
+			audit_logger (AUDIT_DEL_GROUP, Prog,
+			              "deleting shadow group",
+			              user_name, AUDIT_NO_ID,
+			              SHADOW_AUDIT_SUCCESS);
+#endif				/* WITH_AUDIT */
+			SYSLOG ((LOG_INFO,
+			         "removed shadow group '%s' owned by '%s'\n",
+			         user_name, user_name));
+
+		}
+#endif				/* SHADOWGRP */
+	}
 }
 
 /*
@@ -597,25 +638,17 @@ static void update_user (void)
 static void user_cancel (const char *user)
 {
 	const char *cmd;
-	pid_t pid, wpid;
+	const char *argv[3];
 	int status;
 
 	cmd = getdef_str ("USERDEL_CMD");
 	if (NULL == cmd) {
 		return;
 	}
-	pid = fork ();
-	if (pid == 0) {
-		execl (cmd, cmd, user, (char *) 0);
-		perror (cmd);
-		exit (errno == ENOENT ? E_CMD_NOTFOUND : E_CMD_NOEXEC);
-	} else if ((pid_t)-1 == pid) {
-		perror ("fork");
-		return;
-	}
-	do {
-		wpid = wait (&status);
-	} while ((wpid != pid) && ((pid_t)-1 != wpid));
+	argv[0] = cmd;
+	argv[1] = user;
+	argv[2] = (char *)0;
+	(void) run_command (cmd, argv, NULL, &status);
 }
 
 #ifdef EXTRA_CHECK_HOME_DIR
@@ -668,6 +701,28 @@ static int remove_mailbox (void)
 		return 0;
 	}
 	snprintf (mailfile, sizeof mailfile, "%s/%s", maildir, user_name);
+
+	if (access (mailfile, F_OK) != 0) {
+		if (ENOENT == errno) {
+			fprintf (stderr,
+			         _("%s: %s mail spool (%s) not found\n"),
+			         Prog, user_name, mailfile);
+			return 0;
+		} else {
+			fprintf (stderr,
+			         _("%s: warning: can't remove %s: %s\n"),
+			         Prog, mailfile, strerror (errno));
+			SYSLOG ((LOG_ERR, "Cannot remove %s: %s", mailfile, strerror (errno)));
+#ifdef WITH_AUDIT
+			audit_logger (AUDIT_DEL_USER, Prog,
+			              "deleting mail file",
+			              user_name, (unsigned int) user_id,
+			              SHADOW_AUDIT_FAILURE);
+#endif				/* WITH_AUDIT */
+			return -1;
+		}
+	}
+
 	if (fflg) {
 		if (unlink (mailfile) != 0) {
 			fprintf (stderr,
@@ -799,10 +854,6 @@ int main (int argc, char **argv)
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 
-#ifdef WITH_AUDIT
-	audit_help_open ();
-#endif				/* WITH_AUDIT */
-
 	/*
 	 * Get my name so that I can use it to report errors.
 	 */
@@ -811,18 +862,34 @@ int main (int argc, char **argv)
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
+	OPENLOG ("userdel");
+#ifdef WITH_AUDIT
+	audit_help_open ();
+#endif				/* WITH_AUDIT */
+
 	{
 		/*
 		 * Parse the command line options.
 		 */
 		int c;
 		static struct option long_options[] = {
-			{"force", no_argument, NULL, 'f'},
-			{"help", no_argument, NULL, 'h'},
-			{"remove", no_argument, NULL, 'r'},
+			{"force",        no_argument,       NULL, 'f'},
+			{"help",         no_argument,       NULL, 'h'},
+			{"remove",       no_argument,       NULL, 'r'},
+			{"root",         required_argument, NULL, 'R'},
+#ifdef WITH_SELINUX
+			{"selinux-user", no_argument,       NULL, 'Z'},
+#endif				/* WITH_SELINUX */
 			{NULL, 0, NULL, '\0'}
 		};
-		while ((c = getopt_long (argc, argv, "fhr",
+		while ((c = getopt_long (argc, argv,
+#ifdef WITH_SELINUX             
+		                         "fhrR:Z",
+#else				/* !WITH_SELINUX */
+		                         "fhrR:",
+#endif				/* !WITH_SELINUX */
 		                         long_options, NULL)) != -1) {
 			switch (c) {
 			case 'f':	/* force remove even if not owned by user */
@@ -834,6 +901,21 @@ int main (int argc, char **argv)
 			case 'r':	/* remove home dir and mailbox */
 				rflg = true;
 				break;
+			case 'R': /* no-op, handled in process_root_flag () */
+				break;
+#ifdef WITH_SELINUX             
+			case 'Z':
+				if (is_selinux_enabled () > 0) {
+					Zflg = true;
+				} else {
+					fprintf (stderr,
+					         _("%s: -Z requires SELinux enabled kernel\n"),
+					         Prog);
+
+					exit (E_BAD_ARG);
+				}
+				break;
+#endif				/* WITH_SELINUX */
 			default:
 				usage (E_USAGE);
 			}
@@ -843,8 +925,6 @@ int main (int argc, char **argv)
 	if ((optind + 1) != argc) {
 		usage (E_USAGE);
 	}
-
-	OPENLOG ("userdel");
 
 #ifdef ACCT_TOOLS_SETUID
 #ifdef USE_PAM
@@ -869,13 +949,16 @@ int main (int argc, char **argv)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		exit (E_PW_UPDATE);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 
@@ -903,6 +986,7 @@ int main (int argc, char **argv)
 			exit (E_NOTFOUND);
 		}
 		user_id = pwd->pw_uid;
+		user_gid = pwd->pw_gid;
 		user_home = xstrdup (pwd->pw_dir);
 	}
 #ifdef WITH_TCB
@@ -936,9 +1020,6 @@ int main (int argc, char **argv)
 	 * a cron job may be started on her behalf, etc.
 	 */
 	if (user_busy (user_name, user_id) != 0) {
-		fprintf (stderr,
-		         _("%s: user %s is currently logged in\n"),
-		         Prog, user_name);
 		if (!fflg) {
 #ifdef WITH_AUDIT
 			audit_logger (AUDIT_DEL_USER, Prog,
@@ -1036,14 +1117,19 @@ int main (int argc, char **argv)
 #endif				/* WITH_AUDIT */
 
 #ifdef WITH_SELINUX
-	if (is_selinux_enabled () > 0) {
-		const char *args[5];
-		args[0] = "/usr/sbin/semanage";
-		args[1] = "login";
-		args[2] = "-d";
-		args[3] = user_name;
-		args[4] = NULL;
-		safe_system (args[0], args, NULL, true);
+	if (Zflg) {
+		if (del_seuser (user_name) != 0) {
+			fprintf (stderr,
+			         _("%s: warning: the user name %s to SELinux user mapping removal failed.\n"),
+			         Prog, user_name);
+#ifdef WITH_AUDIT
+			audit_logger (AUDIT_ADD_USER, Prog,
+			              "removing SELinux user mapping",
+			              user_name, (unsigned int) user_id,
+			              SHADOW_AUDIT_FAILURE);
+#endif				/* WITH_AUDIT */
+			fail_exit (E_SE_UPDATE);
+		}
 	}
 #endif				/* WITH_SELINUX */
 

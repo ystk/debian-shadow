@@ -47,13 +47,35 @@
 <!ENTITY SU_WHEEL_ONLY         SYSTEM "login.defs.d/SU_WHEEL_ONLY.xml">
 <!ENTITY SYSLOG_SU_ENAB        SYSTEM "login.defs.d/SYSLOG_SU_ENAB.xml">
 <!ENTITY USERGROUPS_ENAB       SYSTEM "login.defs.d/USERGROUPS_ENAB.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='su.1'>
-  <!--  $Id: su.1.xml 3267 2010-08-28 19:48:17Z nekral-guest $ -->
+  <!--  $Id: su.1.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1989</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>su</refentrytitle>
     <manvolnum>1</manvolnum>
     <refmiscinfo class="sectdesc">User Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>su</refname>
@@ -134,6 +156,13 @@
 	    Specify a command that will be invoked by the shell using its
 	    <option>-c</option>.
 	  </para>
+	  <para>
+	    The executed command will have no controlling terminal. This
+	    option cannot be used to execute interractive programs which
+	    need a controlling TTY.
+	    <!-- This avoids TTY hijacking when su is used to lower
+	         privileges -->
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -191,7 +220,7 @@
 	  <para>
 	    If the target user has a restricted shell (i.e. the shell field of
 	    this user's entry in <filename>/etc/passwd</filename> is not
-	    listed in <filename>/etc/shell</filename>), then the
+	    listed in <filename>/etc/shells</filename>), then the
 	    <option>--shell</option> option or the <envar>$SHELL</envar>
 	    environment variable won't be taken into account, unless
 	    <command>su</command> is called by root.

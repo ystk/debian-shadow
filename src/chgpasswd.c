@@ -2,7 +2,7 @@
  * Copyright (c) 1990 - 1994, Julianne Frances Haugh
  * Copyright (c) 2006       , Tomasz Kłoczko
  * Copyright (c) 2006       , Jonas Meurer
- * Copyright (c) 2007 - 2009, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: chgpasswd.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: chgpasswd.c 3652 2011-12-09 21:31:39Z nekral-guest $"
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -58,14 +58,14 @@
  * Global variables
  */
 const char *Prog;
-static bool cflg   = false;
 static bool eflg   = false;
 static bool md5flg = false;
 #ifdef USE_SHA_CRYPT
 static bool sflg   = false;
 #endif
 
-static const char *crypt_method = NULL;
+static /*@null@*//*@observer@*/const char *crypt_method = NULL;
+#define cflg (NULL != crypt_method)
 #ifdef USE_SHA_CRYPT
 static long sha_rounds = 5000;
 #endif
@@ -78,7 +78,7 @@ static bool gr_locked = false;
 
 /* local function prototypes */
 static void fail_exit (int code);
-static void usage (int status);
+static /*@noreturn@*/void usage (int status);
 static void process_flags (int argc, char **argv);
 static void check_flags (void);
 static void check_perms (void);
@@ -114,28 +114,35 @@ static void fail_exit (int code)
 /*
  * usage - display usage message and exit
  */
-static void usage (int status)
+static /*@noreturn@*/void usage (int status)
 {
-	(void) fprintf ((E_SUCCESS != status) ? stderr : stdout,
-	                 _("Usage: %s [options]\n"
-	                   "\n"
-	                   "Options:\n"
-	                   "  -c, --crypt-method            the crypt method (one of %s)\n"
-	                   "  -e, --encrypted               supplied passwords are encrypted\n"
-	                   "  -h, --help                    display this help message and exit\n"
-	                   "  -m, --md5                     encrypt the clear text password using\n"
-	                   "                                the MD5 algorithm\n"
-	                   "%s"
-	                   "\n"),
-	                 Prog,
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fprintf (usageout,
+	                _("  -c, --crypt-method METHOD     the crypt method (one of %s)\n"),
 #ifndef USE_SHA_CRYPT
-	                 "NONE DES MD5", ""
-#else
-	                 "NONE DES MD5 SHA256 SHA512",
-	                 _("  -s, --sha-rounds              number of SHA rounds for the SHA*\n"
-	                   "                                crypt algorithms\n")
-#endif
-	                 );
+	                "NONE DES MD5"
+#else				/* USE_SHA_CRYPT */
+	                "NONE DES MD5 SHA256 SHA512"
+#endif				/* USE_SHA_CRYPT */
+	               );
+	(void) fputs (_("  -e, --encrypted               supplied passwords are encrypted\n"), usageout);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -m, --md5                     encrypt the clear text password using\n"
+	                "                                the MD5 algorithm\n"),
+	              usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+#ifdef USE_SHA_CRYPT
+	(void) fputs (_("  -s, --sha-rounds              number of SHA rounds for the SHA*\n"
+	                "                                crypt algorithms\n"),
+	              usageout);
+#endif				/* USE_SHA_CRYPT */
+	(void) fputs ("\n", usageout);
+
 	exit (status);
 }
 
@@ -146,29 +153,28 @@ static void usage (int status)
  */
 static void process_flags (int argc, char **argv)
 {
-	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
 		{"crypt-method", required_argument, NULL, 'c'},
-		{"encrypted", no_argument, NULL, 'e'},
-		{"help", no_argument, NULL, 'h'},
-		{"md5", no_argument, NULL, 'm'},
+		{"encrypted",    no_argument,       NULL, 'e'},
+		{"help",         no_argument,       NULL, 'h'},
+		{"md5",          no_argument,       NULL, 'm'},
+		{"root",         required_argument, NULL, 'R'},
 #ifdef USE_SHA_CRYPT
-		{"sha-rounds", required_argument, NULL, 's'},
+		{"sha-rounds",   required_argument, NULL, 's'},
 #endif
 		{NULL, 0, NULL, '\0'}
 	};
 
 	while ((c = getopt_long (argc, argv,
 #ifdef USE_SHA_CRYPT
-	                         "c:ehms:",
+	                         "c:ehmR:s:",
 #else
-	                         "c:ehm",
+	                         "c:ehmR:",
 #endif
-	                         long_options, &option_index)) != -1) {
+	                         long_options, NULL)) != -1) {
 		switch (c) {
 		case 'c':
-			cflg = true;
 			crypt_method = optarg;
 			break;
 		case 'e':
@@ -176,9 +182,11 @@ static void process_flags (int argc, char **argv)
 			break;
 		case 'h':
 			usage (E_SUCCESS);
-			break;
+			/*@notreached@*/break;
 		case 'm':
 			md5flg = true;
+			break;
+		case 'R': /* no-op, handled in process_root_flag () */
 			break;
 #ifdef USE_SHA_CRYPT
 		case 's':
@@ -193,7 +201,7 @@ static void process_flags (int argc, char **argv)
 #endif
 		default:
 			usage (E_USAGE);
-			break;
+			/*@notreached@*/break;
 		}
 	}
 
@@ -278,13 +286,16 @@ static void check_perms (void)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		exit (1);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 }
@@ -391,6 +402,8 @@ int main (int argc, char **argv)
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	process_flags (argc, argv);
 
 	OPENLOG ("chgpasswd");
@@ -442,23 +455,20 @@ int main (int argc, char **argv)
 			continue;
 		}
 		newpwd = cp;
-		if (!eflg &&
-		    (NULL == crypt_method ||
-		     0 != strcmp(crypt_method, "NONE"))) {
+		if (   (!eflg)
+		    && (   (NULL == crypt_method)
+		        || (0 != strcmp (crypt_method, "NONE")))) {
 			void *arg = NULL;
 			if (md5flg) {
 				crypt_method = "MD5";
-			} else if (crypt_method != NULL) {
-#ifdef USE_SHA_CRYPT
-				if (sflg) {
-					arg = &sha_rounds;
-				}
-#endif
-			} else {
-				crypt_method = NULL;
 			}
+#ifdef USE_SHA_CRYPT
+			if (sflg) {
+				arg = &sha_rounds;
+			}
+#endif
 			cp = pw_encrypt (newpwd,
-			                 crypt_make_salt(crypt_method, arg));
+			                 crypt_make_salt (crypt_method, arg));
 		}
 
 		/*
@@ -475,7 +485,28 @@ int main (int argc, char **argv)
 		}
 #ifdef SHADOWGRP
 		if (is_shadow_grp) {
+			/* The gshadow entry should be updated if the
+			 * group entry has a password set to 'x'.
+			 * But on the other hand, if there is already both
+			 * a group and a gshadow password, it's preferable
+			 * to update both.
+			 */
 			sg = sgr_locate (name);
+
+			if (   (NULL == sg)
+			    && (strcmp (gr->gr_passwd,
+			                SHADOW_PASSWD_STRING) == 0)) {
+				static char *empty = NULL;
+				/* If the password is set to 'x' in
+				 * group, but there are no entries in
+				 * gshadow, create one.
+				 */
+				newsg.sg_name   = name;
+				/* newsg.sg_passwd = NULL; will be set later */
+				newsg.sg_adm    = &empty;
+				newsg.sg_mem    = dup_list (gr->gr_mem);
+				sg = &newsg;
+			}
 		} else {
 			sg = NULL;
 		}
@@ -489,7 +520,9 @@ int main (int argc, char **argv)
 		if (NULL != sg) {
 			newsg = *sg;
 			newsg.sg_passwd = cp;
-		} else
+		}
+		if (   (NULL == sg)
+		    || (strcmp (gr->gr_passwd, SHADOW_PASSWD_STRING) != 0))
 #endif
 		{
 			newgr = *gr;
@@ -510,7 +543,9 @@ int main (int argc, char **argv)
 				errors++;
 				continue;
 			}
-		} else
+		}
+		if (   (NULL == sg)
+		    || (strcmp (gr->gr_passwd, SHADOW_PASSWD_STRING) != 0))
 #endif
 		{
 			if (gr_update (&newgr) == 0) {

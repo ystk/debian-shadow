@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2001 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2008, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,14 @@
 
 #include <config.h>
 
-#ident "$Id: chfn.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: chfn.c 3576 2011-11-13 16:24:57Z nekral-guest $"
 
 #include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <getopt.h>
 #ifdef WITH_SELINUX
 #include <selinux/selinux.h>
 #include <selinux/av_permissions.h>
@@ -79,7 +80,7 @@ static bool pw_locked = false;
 
 /* local function prototypes */
 static void fail_exit (int code);
-static void usage (void);
+static /*@noreturn@*/void usage (int status);
 static bool may_change_field (int);
 static void new_fields (void);
 static char *copy_field (char *, char *, char *);
@@ -110,19 +111,23 @@ static void fail_exit (int code)
 /*
  * usage - print command line syntax and exit
  */
-static void usage (void)
+static /*@noreturn@*/void usage (int status)
 {
-	if (amroot) {
-		fprintf (stderr,
-		         _("Usage: %s [-f full_name] [-r room_no] "
-		           "[-w work_ph]\n"
-		           "\t[-h home_ph] [-o other] [user]\n"), Prog);
-	} else {
-		fprintf (stderr,
-		         _("Usage: %s [-f full_name] [-r room_no] "
-		           "[-w work_ph] [-h home_ph]\n"), Prog);
-	}
-	exit (E_USAGE);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] [LOGIN]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -f, --full-name FULL_NAME     change user's full name\n"), usageout);
+	(void) fputs (_("  -h, --home-phone HOME_PHONE   change user's home phone number\n"), usageout);
+	(void) fputs (_("  -o, --other OTHER_INFO        change user's other GECOS information\n"), usageout);
+	(void) fputs (_("  -r, --room ROOM_NUMBER        change user's room number\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs (_("  -u, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -w, --work-phone WORK_PHONE   change user's office phone number\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
 }
 
 /*
@@ -262,7 +267,17 @@ static char *copy_field (char *in, char *out, char *extra)
  */
 static void process_flags (int argc, char **argv)
 {
-	int flag;		/* flag currently being processed    */
+	int c;		/* flag currently being processed    */
+	static struct option long_options[] = {
+		{"full-name",  required_argument, NULL, 'f'},
+		{"home-phone", required_argument, NULL, 'h'},
+		{"other",      required_argument, NULL, 'o'},
+		{"room",       required_argument, NULL, 'r'},
+		{"root",       required_argument, NULL, 'R'},
+		{"help",       no_argument,       NULL, 'u'},
+		{"work-phone", required_argument, NULL, 'w'},
+		{NULL, 0, NULL, '\0'}
+	};
 
 	/* 
 	 * The remaining arguments will be processed one by one and executed
@@ -271,8 +286,9 @@ static void process_flags (int argc, char **argv)
 	 * environment and must agree with the real UID. Also, the UID will
 	 * be checked for any commands which are restricted to root only.
 	 */
-	while ((flag = getopt (argc, argv, "f:r:w:h:o:")) != EOF) {
-		switch (flag) {
+	while ((c = getopt_long (argc, argv, "f:h:o:r:R:uw:",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
 		case 'f':
 			if (!may_change_field ('f')) {
 				fprintf (stderr,
@@ -291,15 +307,6 @@ static void process_flags (int argc, char **argv)
 			hflg = true;
 			STRFCPY (homeph, optarg);
 			break;
-		case 'r':
-			if (!may_change_field ('r')) {
-				fprintf (stderr,
-				         _("%s: Permission denied.\n"), Prog);
-				exit (E_NOPERM);
-			}
-			rflg = true;
-			STRFCPY (roomno, optarg);
-			break;
 		case 'o':
 			if (!amroot) {
 				fprintf (stderr,
@@ -309,6 +316,20 @@ static void process_flags (int argc, char **argv)
 			oflg = true;
 			STRFCPY (slop, optarg);
 			break;
+		case 'r':
+			if (!may_change_field ('r')) {
+				fprintf (stderr,
+				         _("%s: Permission denied.\n"), Prog);
+				exit (E_NOPERM);
+			}
+			rflg = true;
+			STRFCPY (roomno, optarg);
+			break;
+		case 'R': /* no-op, handled in process_root_flag () */
+			break;
+		case 'u':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
 		case 'w':
 			if (!may_change_field ('w')) {
 				fprintf (stderr,
@@ -319,7 +340,7 @@ static void process_flags (int argc, char **argv)
 			STRFCPY (workph, optarg);
 			break;
 		default:
-			usage ();
+			usage (E_USAGE);
 		}
 	}
 }
@@ -395,13 +416,16 @@ static void check_perms (const struct passwd *pw)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		exit (E_NOPERM);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 }
 
@@ -551,14 +575,14 @@ static void get_old_fields (const char *gecos)
 static void check_fields (void)
 {
 	int err;
-	err = valid_field (fullnm, ":,=");
+	err = valid_field (fullnm, ":,=\n");
 	if (err > 0) {
 		fprintf (stderr, _("%s: name with non-ASCII characters: '%s'\n"), Prog, fullnm);
 	} else if (err < 0) {
 		fprintf (stderr, _("%s: invalid name: '%s'\n"), Prog, fullnm);
 		fail_exit (E_NOPERM);
 	}
-	err = valid_field (roomno, ":,=");
+	err = valid_field (roomno, ":,=\n");
 	if (err > 0) {
 		fprintf (stderr, _("%s: room number with non-ASCII characters: '%s'\n"), Prog, roomno);
 	} else if (err < 0) {
@@ -566,17 +590,17 @@ static void check_fields (void)
 		         Prog, roomno);
 		fail_exit (E_NOPERM);
 	}
-	if (valid_field (workph, ":,=") != 0) {
+	if (valid_field (workph, ":,=\n") != 0) {
 		fprintf (stderr, _("%s: invalid work phone: '%s'\n"),
 		         Prog, workph);
 		fail_exit (E_NOPERM);
 	}
-	if (valid_field (homeph, ":,=") != 0) {
+	if (valid_field (homeph, ":,=\n") != 0) {
 		fprintf (stderr, _("%s: invalid home phone: '%s'\n"),
 		         Prog, homeph);
 		fail_exit (E_NOPERM);
 	}
-	err = valid_field (slop, ":");
+	err = valid_field (slop, ":\n");
 	if (err > 0) {
 		fprintf (stderr, _("%s: '%s' contains non-ASCII characters\n"), Prog, slop);
 	} else if (err < 0) {
@@ -609,22 +633,24 @@ int main (int argc, char **argv)
 	char new_gecos[BUFSIZ];	/* buffer for new GECOS fields       */
 	char *user;
 
+	/*
+	 * Get the program name. The program name is used as a
+	 * prefix to most error messages.
+	 */
+	Prog = Basename (argv[0]);
+
 	sanitize_env ();
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
+
+	process_root_flag ("-R", argc, argv);
 
 	/*
 	 * This command behaves different for root and non-root
 	 * users.
 	 */
 	amroot = (getuid () == 0);
-
-	/*
-	 * Get the program name. The program name is used as a
-	 * prefix to most error messages.
-	 */
-	Prog = Basename (argv[0]);
 
 	OPENLOG ("chfn");
 

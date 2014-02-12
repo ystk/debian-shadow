@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: commonio.h 3231 2010-08-22 13:04:54Z nekral-guest $ */
+/* $Id: commonio.h 3640 2011-11-19 21:51:52Z nekral-guest $ */
 #ifndef _COMMONIO_H
 #define _COMMONIO_H
 
@@ -126,7 +126,8 @@ struct commonio_db {
 	/*
 	 * Head, tail, current position in linked list.
 	 */
-	/*@owned@*/ /*@null@*/struct commonio_entry *head, *tail;
+	/*@owned@*/ /*@null@*/struct commonio_entry *head;
+	/*@dependent@*/ /*@null@*/struct commonio_entry *tail;
 	/*@dependent@*/ /*@null@*/struct commonio_entry *cursor;
 
 	/*
@@ -141,7 +142,7 @@ struct commonio_db {
 extern int commonio_setname (struct commonio_db *, const char *);
 extern bool commonio_present (const struct commonio_db *db);
 extern int commonio_lock (struct commonio_db *);
-extern int commonio_lock_nowait (struct commonio_db *);
+extern int commonio_lock_nowait (struct commonio_db *, bool log);
 extern int commonio_open (struct commonio_db *, int);
 extern /*@observer@*/ /*@null@*/const void *commonio_locate (struct commonio_db *, const char *);
 extern int commonio_update (struct commonio_db *, const void *);

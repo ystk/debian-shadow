@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991 - 1994, Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -36,13 +36,35 @@
 <!ENTITY USE_TCB               SYSTEM "login.defs.d/USE_TCB.xml">
 <!ENTITY USERDEL_CMD           SYSTEM "login.defs.d/USERDEL_CMD.xml">
 <!ENTITY USERGROUPS_ENAB       SYSTEM "login.defs.d/USERGROUPS_ENAB.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='userdel.8'>
-  <!-- $Id: userdel.8.xml 3118 2010-03-16 19:15:05Z nekral-guest $ -->
+  <!-- $Id: userdel.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>userdel</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>userdel</refname>
@@ -117,6 +139,29 @@
 	  <para>
 	    The mail spool is defined by the <option>MAIL_DIR</option>
 	    variable in the <filename>login.defs</filename> file.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-Z</option>, <option>--selinux-user</option>
+	</term>
+	<listitem>
+	  <para>
+	    Remove any SELinux user mapping for the user's login.
 	  </para>
 	</listitem>
       </varlistentry>

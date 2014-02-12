@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991 - 1993, Julianne Frances Haugh
-   Copyright (c) 2007 - 2008, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,35 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
   "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 <!ENTITY MAX_MEMBERS_PER_GROUP SYSTEM "login.defs.d/MAX_MEMBERS_PER_GROUP.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='groupdel.8'>
-  <!-- $Id: groupdel.8.xml 2947 2009-05-19 20:31:45Z nekral-guest $ -->
+  <!-- $Id: groupdel.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>groupdel</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>groupdel</refname>
@@ -47,18 +69,48 @@
   <refsynopsisdiv id='synopsis'>
     <cmdsynopsis>
       <command>groupdel</command>
-      <arg choice='plain'>
-	<replaceable>group</replaceable>
+      <arg choice='opt'>
+        <replaceable>options</replaceable>
       </arg>
+      <arg choice='plain'><replaceable>GROUP</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1 id='description'>
     <title>DESCRIPTION</title>
     <para> The <command>groupdel</command> command modifies the system
-      account files, deleting all entries that refer to <emphasis
-      remap='I'>group</emphasis>. The named group must exist.
+      account files, deleting all entries that refer to
+      <replaceable>GROUP</replaceable>. The named group must exist.
     </para>
+  </refsect1>
+
+  <refsect1 id='options'>
+    <title>OPTIONS</title>
+    <para>
+      The options which apply to the <command>groupdel</command> command
+      are:
+    </para>
+    <variablelist remap='IP'>
+      <varlistentry>
+	<term><option>-h</option>, <option>--help</option></term>
+	<listitem>
+	  <para>Display help message and exit.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
   </refsect1>
 
   <refsect1 id='caveats'>
@@ -144,7 +196,8 @@
 
   <refsect1 id='see_also'>
     <title>SEE ALSO</title>
-    <para><citerefentry>
+    <para>
+      <citerefentry>
 	<refentrytitle>chfn</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry>,
       <citerefentry>
@@ -170,7 +223,7 @@
       </citerefentry>,
       <citerefentry>
 	<refentrytitle>usermod</refentrytitle><manvolnum>8</manvolnum>
-      </citerefentry>
+      </citerefentry>.
     </para>
   </refsect1>
 </refentry>

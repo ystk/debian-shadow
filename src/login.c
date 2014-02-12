@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2001, Marek Michałkiewicz
  * Copyright (c) 2001 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2010, Nicolas François
+ * Copyright (c) 2007 - 2012, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: login.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: login.c 3743 2012-05-25 11:51:53Z nekral-guest $"
 
 #include <errno.h>
 #include <grp.h>
@@ -791,9 +791,9 @@ int main (int argc, char **argv)
 				SYSLOG ((LOG_NOTICE,
 				         "TOO MANY LOGIN TRIES (%u)%s FOR '%s'",
 				         failcount, fromhost, failent_user));
-				fprintf(stderr,
-				        _("Maximum number of tries exceeded (%u)\n"),
-				        failcount);
+				fprintf (stderr,
+				         _("Maximum number of tries exceeded (%u)\n"),
+				         failcount);
 				PAM_END;
 				exit(0);
 			} else if (retcode == PAM_ABORT) {
@@ -835,9 +835,9 @@ int main (int argc, char **argv)
 				SYSLOG ((LOG_NOTICE,
 				         "TOO MANY LOGIN TRIES (%u)%s FOR '%s'",
 				         failcount, fromhost, failent_user));
-				fprintf(stderr,
-				        _("Maximum number of tries exceeded (%u)\n"),
-				        failcount);
+				fprintf (stderr,
+				         _("Maximum number of tries exceeded (%u)\n"),
+				         failcount);
 				PAM_END;
 				exit(0);
 			}
@@ -877,12 +877,15 @@ int main (int argc, char **argv)
 	if (NULL != username) {
 		free (username);
 	}
-	username = pam_user;
+	username = xstrdup (pam_user);
 	failent_user = get_failent_user (username);
 
 	pwd = xgetpwnam (username);
 	if (NULL == pwd) {
 		SYSLOG ((LOG_ERR, "cannot find user %s", failent_user));
+		fprintf (stderr,
+		         _("Cannot find user (%s)\n"),
+		         username);
 		exit (1);
 	}
 

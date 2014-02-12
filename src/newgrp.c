@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: newgrp.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: newgrp.c 3458 2011-07-30 01:41:56Z nekral-guest $"
 
 #include <errno.h>
 #include <grp.h>
@@ -806,7 +806,7 @@ int main (int argc, char **argv)
 	 */
 	err = shell (prog, initflag ? (char *) 0 : cp, newenvp);
 	exit ((err == ENOENT) ? E_CMD_NOTFOUND : E_CMD_NOEXEC);
-	/* @notreached@ */
+	/*@notreached@*/
       failure:
 
 	/*

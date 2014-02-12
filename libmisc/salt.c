@@ -9,7 +9,7 @@
 
 #include <config.h>
 
-#ident "$Id: salt.c 3232 2010-08-22 19:13:53Z nekral-guest $"
+#ident "$Id: salt.c 3489 2011-09-18 20:40:50Z nekral-guest $"
 
 #include <sys/time.h>
 #include <stdlib.h>
@@ -106,7 +106,7 @@ static size_t SHA_salt_size (void)
  */
 static /*@observer@*/const char *SHA_salt_rounds (/*@null@*/int *prefered_rounds)
 {
-	static char rounds_prefix[18];
+	static char rounds_prefix[18]; /* Max size: rounds=999999999$ */
 	long rounds;
 
 	if (NULL == prefered_rounds) {
@@ -150,13 +150,8 @@ static /*@observer@*/const char *SHA_salt_rounds (/*@null@*/int *prefered_rounds
 		rounds = ROUNDS_MAX;
 	}
 
-	(void) snprintf (rounds_prefix, 18, "rounds=%ld$", rounds);
-
-	/* Sanity checks. That should not be necessary. */
-	rounds_prefix[17] = '\0';
-	if ('$' != rounds_prefix[16]) {
-		rounds_prefix[17] = '$';
-	}
+	(void) snprintf (rounds_prefix, sizeof rounds_prefix,
+	                 "rounds=%ld$", rounds);
 
 	return rounds_prefix;
 }
@@ -202,7 +197,7 @@ static /*@observer@*/const char *gensalt (size_t salt_size)
  *  * For the SHA256 and SHA512 method, this specifies the number of rounds
  *    (if not NULL).
  */
-/*@observer@*/const char *crypt_make_salt (/*@null@*/const char *meth, /*@null@*/void *arg)
+/*@observer@*/const char *crypt_make_salt (/*@null@*//*@observer@*/const char *meth, /*@null@*/void *arg)
 {
 	/* Max result size for the SHA methods:
 	 *  +3		$5$

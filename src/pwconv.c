@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2002 - 2006, Tomasz Kłoczko
- * Copyright (c) 2009       , Nicolas François
+ * Copyright (c) 2009 - 2012, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@
 
 #include <config.h>
 
-#ident "$Id: pwconv.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: pwconv.c 3743 2012-05-25 11:51:53Z nekral-guest $"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -65,6 +65,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "defines.h"
 #include "getdef.h"
 #include "prototypes.h"
@@ -93,6 +94,8 @@ static bool pw_locked = false;
 
 /* local function prototypes */
 static void fail_exit (int status);
+static void usage (int status);
+static void process_flags (int argc, char **argv);
 
 static void fail_exit (int status)
 {
@@ -115,6 +118,55 @@ static void fail_exit (int status)
 	exit (status);
 }
 
+static void usage (int status)
+{
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
+}
+
+/*
+ * process_flags - parse the command line options
+ *
+ *	It will not return if an error is encountered.
+ */
+static void process_flags (int argc, char **argv)
+{
+	/*
+	 * Parse the command line options.
+	 */
+	int c;
+	static struct option long_options[] = {
+		{"help", no_argument,       NULL, 'h'},
+		{"root", required_argument, NULL, 'R'},
+		{NULL, 0, NULL, '\0'}
+	};
+
+	while ((c = getopt_long (argc, argv, "hR:",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
+		case 'h':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
+		case 'R': /* no-op, handled in process_root_flag () */
+			break;
+		default:
+			usage (E_USAGE);
+		}
+	}
+
+	if (optind != argc) {
+		usage (E_USAGE);
+	}
+}
+
 int main (int argc, char **argv)
 {
 	const struct passwd *pw;
@@ -122,21 +174,22 @@ int main (int argc, char **argv)
 	const struct spwd *sp;
 	struct spwd spent;
 
-	if (1 != argc) {
-		(void) fputs (_("Usage: pwconv\n"), stderr);
-	}
 	Prog = Basename (argv[0]);
 
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	OPENLOG ("pwconv");
+
+	process_flags (argc, argv);
 
 #ifdef WITH_TCB
 	if (getdef_bool("USE_TCB")) {
-		fprintf(stderr, _("%s: can't work with tcb enabled\n"), Prog);
-		fail_exit(E_FAILURE);
+		fprintf (stderr, _("%s: can't work with tcb enabled\n"), Prog);
+		exit (E_FAILURE);
 	}
 #endif				/* WITH_TCB */
 
@@ -169,7 +222,7 @@ int main (int argc, char **argv)
 	/*
 	 * Remove /etc/shadow entries for users not in /etc/passwd.
 	 */
-	spw_rewind ();
+	(void) spw_rewind ();
 	while ((sp = spw_next ()) != NULL) {
 		if (pw_locate (sp->sp_namp) != NULL) {
 			continue;
@@ -190,7 +243,7 @@ int main (int argc, char **argv)
 	 * Update shadow entries which don't have "x" as pw_passwd. Add any
 	 * missing shadow entries.
 	 */
-	pw_rewind ();
+	(void) pw_rewind ();
 	while ((pw = pw_next ()) != NULL) {
 		sp = spw_locate (pw->pw_name);
 		if (NULL != sp) {
@@ -260,20 +313,16 @@ int main (int argc, char **argv)
 		/* continue */
 	}
 
-	if (pw_locked) {
-		if (pw_unlock () == 0) {
-			fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, pw_dbname ());
-			SYSLOG ((LOG_ERR, "failed to unlock %s", pw_dbname ()));
-			/* continue */
-		}
+	if (pw_unlock () == 0) {
+		fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, pw_dbname ());
+		SYSLOG ((LOG_ERR, "failed to unlock %s", pw_dbname ()));
+		/* continue */
 	}
 
-	if (spw_locked) {
-		if (spw_unlock () == 0) {
-			fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, spw_dbname ());
-			SYSLOG ((LOG_ERR, "failed to unlock %s", spw_dbname ()));
-			/* continue */
-		}
+	if (spw_unlock () == 0) {
+		fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, spw_dbname ());
+		SYSLOG ((LOG_ERR, "failed to unlock %s", spw_dbname ()));
+		/* continue */
 	}
 
 	nscd_flush_cache ("passwd");

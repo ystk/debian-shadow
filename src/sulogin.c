@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: sulogin.c 3231 2010-08-22 13:04:54Z nekral-guest $"
+#ident "$Id: sulogin.c 3521 2011-10-18 20:28:01Z nekral-guest $"
 
 #include <fcntl.h>
 #include <pwd.h>
@@ -49,6 +49,8 @@
 /*
  * Global variables
  */
+const char *Prog;
+
 static char name[BUFSIZ];
 static char pass[BUFSIZ];
 
@@ -80,7 +82,9 @@ static RETSIGTYPE catch_signals (unused int sig)
 
  /*ARGSUSED*/ int main (int argc, char **argv)
 {
+#ifndef USE_PAM
 	const char *env;
+#endif				/* !USE_PAM */
 	char **envp = environ;
 	TERMIO termio;
 	int err = 0;
@@ -101,6 +105,7 @@ static RETSIGTYPE catch_signals (unused int sig)
 	tcsetattr (0, TCSANOW, &termio);
 #endif
 
+	Prog = Basename (argv[0]);
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
@@ -161,7 +166,6 @@ static RETSIGTYPE catch_signals (unused int sig)
 	}
 
 #ifndef USE_PAM
-
 	env = getdef_str ("ENV_TZ");
 	if (NULL != env) {
 		addenv (('/' == *env) ? tz (env) : env, NULL);

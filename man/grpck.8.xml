@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1992 - 1993, Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,35 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
   "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 <!ENTITY MAX_MEMBERS_PER_GROUP SYSTEM "login.defs.d/MAX_MEMBERS_PER_GROUP.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='grpck.8'>
-  <!-- $Id: grpck.8.xml 3023 2009-06-20 13:02:33Z nekral-guest $ -->
+  <!-- $Id: grpck.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1992</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>grpck</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>grpck</refname>
@@ -46,16 +68,8 @@
 
   <refsynopsisdiv id='synopsis'>
     <cmdsynopsis>
-      <command>grpck</command>    <arg choice='opt'>-r </arg>
-      <arg choice='opt'>
-	<arg choice='plain'><replaceable>group</replaceable></arg>
-	<arg choice='opt' condition="gshadow">
-	  <arg choice='plain'><replaceable>shadow</replaceable></arg>
-	</arg>
-      </arg>
-    </cmdsynopsis>
-    <cmdsynopsis>
-      <command>grpck</command>    <arg choice='opt'>-s </arg>
+      <command>grpck</command>
+      <arg choice='opt'>options</arg>
       <arg choice='opt'>
 	<arg choice='plain'><replaceable>group</replaceable></arg>
 	<arg choice='opt' condition="gshadow">
@@ -132,11 +146,21 @@
   <refsect1 id='options'>
     <title>OPTIONS</title>
     <para>
+      The <option>-r</option> and <option>-s</option> options cannot be
+      combined.
+    </para>
+    <para>
       The options which apply to the <command>grpck</command> command are:
     </para>
     <variablelist remap='IP'>
       <varlistentry>
-	<term><option>-r</option></term>
+	<term><option>-h</option>, <option>--help</option></term>
+	<listitem>
+	  <para>Display help message and exit.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><option>-r</option>, <option>--read-only</option></term>
 	<listitem>
 	  <para>
 	    Execute the <command>grpck</command> command in read-only mode.
@@ -146,7 +170,20 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>-s</option></term>
+	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><option>-s</option>, <option>--sort</option></term>
 	<listitem>
 	  <para>
 	    Sort entries in <filename>/etc/group</filename>
@@ -159,7 +196,7 @@
     </variablelist>
     <para>
       By default, <command>grpck</command> operates on
-      <filename>/etc/group</filename><phrase condition="gshadow"> and
+      <filename>/etc/group</filename> <phrase condition="gshadow">and
       <filename>/etc/gshadow</filename></phrase>.
       The user may select alternate files with the <emphasis
       remap='I'>group</emphasis>

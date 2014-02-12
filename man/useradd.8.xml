@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991 - 1994, Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -45,13 +45,35 @@
 <!ENTITY TCB_SYMLINKS          SYSTEM "login.defs.d/TCB_SYMLINKS.xml">
 <!ENTITY USE_TCB               SYSTEM "login.defs.d/USE_TCB.xml">
 <!ENTITY USERGROUPS_ENAB       SYSTEM "login.defs.d/USERGROUPS_ENAB.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='useradd.8'>
-  <!--  $Id: useradd.8.xml 3210 2010-04-04 23:17:11Z nekral-guest $ -->
+  <!--  $Id: useradd.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>useradd</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>useradd</refname>
@@ -433,6 +455,19 @@
       </varlistentry>
       <varlistentry>
 	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
 	  <option>-s</option>, <option>--shell</option>
 	  <replaceable>SHELL</replaceable>
 	</term>
@@ -456,8 +491,12 @@
 	    The numerical value of the user's ID. This value must be unique,
 	    unless the <option>-o</option> option is used. The value must be
 	    non-negative. The default is to use the smallest ID value
-	    greater than 999 and greater than every other user. Values
-	    between 0 and 999 are typically reserved for system accounts.
+	    greater than or equal to <option>UID_MIN</option> and greater
+	    than every other user.
+	  </para>
+	  <para>
+	    See also the <option>-r</option> option and the
+	    <option>UID_MAX</option> description.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -487,7 +526,7 @@
 	  <para>
 	    The SELinux user for the user's login. The default is to leave this
 	    field blank, which causes the system to select the default SELinux
-	     user.
+	    user.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -562,7 +601,7 @@
 	      the <option>-N/--no-user-group</option> is used or when the
 	      <option>USERGROUPS_ENAB</option> variable is set to
 	      <replaceable>no</replaceable> in
-	      <filename>/etc/login.defs</filename>. The named
+	      <filename>/etc/login.defs</filename>). The named
 	      group must exist, and a numerical group ID must have an
 	      existing entry.
 	    </para>
@@ -759,9 +798,9 @@
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><replaceable>13</replaceable></term>
+	  <term><replaceable>14</replaceable></term>
 	  <listitem>
-	    <para>can't create mail spool</para>
+	    <para>can't update SELinux user mapping</para>
 	  </listitem>
 	</varlistentry>
       </variablelist>

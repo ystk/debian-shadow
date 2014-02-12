@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008       , Nicolas François
+ * Copyright (c) 2008 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,12 @@
  * The cleanup_functions stack.
  */
 #define CLEANUP_FUNCTIONS 10
+
+typedef /*@null@*/void * parg_t;
+
 static cleanup_function cleanup_functions[CLEANUP_FUNCTIONS];
-static void * cleanup_function_args[CLEANUP_FUNCTIONS];
+static parg_t cleanup_function_args[CLEANUP_FUNCTIONS];
+static pid_t cleanup_pid = 0;
 
 /*
  * - Cleanup functions shall not fail.
@@ -53,6 +57,9 @@ static void * cleanup_function_args[CLEANUP_FUNCTIONS];
 /*
  * do_cleanups - perform the actions stored in the cleanup_functions stack.
  *
+ * Cleanup action are not executed on exit of the processes started by the
+ * parent (first caller of add_cleanup).
+ *
  * It is intended to be used as:
  *     atexit (do_cleanups);
  */
@@ -62,6 +69,10 @@ void do_cleanups (void)
 
 	/* Make sure there were no overflow */
 	assert (NULL == cleanup_functions[CLEANUP_FUNCTIONS-1]);
+
+	if (getpid () != cleanup_pid) {
+		return;
+	}
 
 	i = CLEANUP_FUNCTIONS;
 	do {
@@ -75,12 +86,16 @@ void do_cleanups (void)
 /*
  * add_cleanup - Add a cleanup_function to the cleanup_functions stack.
  */
-void add_cleanup (cleanup_function pcf, /*@null@*/void *arg)
+void add_cleanup (/*@notnull@*/cleanup_function pcf, /*@null@*/void *arg)
 {
 	unsigned int i;
 	assert (NULL != pcf);
 
 	assert (NULL == cleanup_functions[CLEANUP_FUNCTIONS-2]);
+
+	if (0 == cleanup_pid) {
+		cleanup_pid = getpid ();
+	}
 
 	/* Add the cleanup_function at the end of the stack */
 	for (i=0; NULL != cleanup_functions[i]; i++);
@@ -91,7 +106,7 @@ void add_cleanup (cleanup_function pcf, /*@null@*/void *arg)
 /*
  * del_cleanup - Remove a cleanup_function from the cleanup_functions stack.
  */
-void del_cleanup (cleanup_function pcf)
+void del_cleanup (/*@notnull@*/cleanup_function pcf)
 {
 	unsigned int i;
 	assert (NULL != pcf);

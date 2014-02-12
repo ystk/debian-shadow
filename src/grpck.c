@@ -3,7 +3,7 @@
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2001       , Michał Moskal
  * Copyright (c) 2001 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2009, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,12 +33,13 @@
 
 #include <config.h>
 
-#ident "$Id: grpck.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: grpck.c 3559 2011-11-06 18:39:53Z nekral-guest $"
 
 #include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
+#include <getopt.h>
 #include "chkname.h"
 #include "commonio.h"
 #include "defines.h"
@@ -55,6 +56,7 @@
  */
 /*@-exitarg@*/
 #define	E_OKAY		0
+#define	E_SUCCESS	0
 #define	E_USAGE		1
 #define	E_BAD_ENTRY	2
 #define	E_CANT_OPEN	3
@@ -82,7 +84,7 @@ static bool sort_mode = false;
 
 /* local function prototypes */
 static void fail_exit (int status);
-static void usage (void);
+static /*@noreturn@*/void usage (int status);
 static void delete_member (char **, const char *);
 static void process_flags (int argc, char **argv);
 static void open_files (void);
@@ -134,35 +136,50 @@ static void fail_exit (int status)
 /*
  * usage - print syntax message and exit
  */
-static void usage (void)
+static /*@noreturn@*/void usage (int status)
 {
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
 #ifdef	SHADOWGRP
-	fprintf (stderr, _("Usage: %s [-r] [-s] [group [gshadow]]\n"), Prog);
-#else
-	fprintf (stderr, _("Usage: %s [-r] [-s] [group]\n"), Prog);
-#endif
-	exit (E_USAGE);
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] [group [gshadow]]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+#else				/* !SHADOWGRP */
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] [group]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+#endif				/* !SHADOWGRP */
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -r, --read-only               display errors and warnings\n"
+	                "                                but do not change files\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs (_("  -s, --sort                    sort entries by UID\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
 }
 
 /*
  * delete_member - delete an entry in a list of members
  *
  * It only deletes the first entry with the given name.
+ * The member is defined by its address, no string comparison are
+ * performed.
  */
 static void delete_member (char **list, const char *member)
 {
 	int i;
 
-	for (i = 0; list[i]; i++) {
+	for (i = 0; NULL != list[i]; i++) {
 		if (list[i] == member) {
 			break;
 		}
 	}
 
-	if (list[i]) {
-		for (; list[i]; i++) {
-			list[i] = list[i + 1];
-		}
+	for (; NULL != list[i]; i++) {
+		list[i] = list[i + 1];
 	}
 }
 
@@ -173,29 +190,43 @@ static void delete_member (char **list, const char *member)
  */
 static void process_flags (int argc, char **argv)
 {
-	int arg;
+	int c;
+	static struct option long_options[] = {
+		{"help",      no_argument,       NULL, 'h'},
+		{"quiet",     no_argument,       NULL, 'q'},
+		{"read-only", no_argument,       NULL, 'r'},
+		{"root",      required_argument, NULL, 'R'},
+		{"sort",      no_argument,       NULL, 's'},
+		{NULL, 0, NULL, '\0'}
+	};
 
 	/*
 	 * Parse the command line arguments
 	 */
-	while ((arg = getopt (argc, argv, "qrs")) != EOF) {
-		switch (arg) {
+	while ((c = getopt_long (argc, argv, "hqrR:s",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
+		case 'h':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
 		case 'q':
 			/* quiet - ignored for now */
 			break;
 		case 'r':
 			read_only = true;
 			break;
+		case 'R': /* no-op, handled in process_root_flag () */
+			break;
 		case 's':
 			sort_mode = true;
 			break;
 		default:
-			usage ();
+			usage (E_USAGE);
 		}
 	}
 
 	if (sort_mode && read_only) {
-		fprintf (stderr, _("%s: -s and -r are incompatibile\n"), Prog);
+		fprintf (stderr, _("%s: -s and -r are incompatible\n"), Prog);
 		exit (E_USAGE);
 	}
 
@@ -203,12 +234,12 @@ static void process_flags (int argc, char **argv)
 	 * Make certain we have the right number of arguments
 	 */
 #ifdef	SHADOWGRP
-	if ((argc < optind) || (argc > (optind + 2)))
+	if (argc > (optind + 2))
 #else
-	if ((argc < optind) || (argc > (optind + 1)))
+	if (argc > (optind + 1))
 #endif
 	{
-		usage ();
+		usage (E_USAGE);
 	}
 
 	/*
@@ -808,6 +839,8 @@ int main (int argc, char **argv)
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
+
+	process_root_flag ("-R", argc, argv);
 
 	OPENLOG ("grpck");
 
