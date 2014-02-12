@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: chowndir.c 3283 2010-09-05 15:34:42Z nekral-guest $"
+#ident "$Id: chowndir.c 3465 2011-08-14 14:00:14Z nekral-guest $"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -116,7 +116,7 @@ int chown_tree (const char *root,
 
 		ent_name_len = strlen (root) + strlen (ent->d_name) + 2;
 		if (ent_name_len > new_name_len) {
-			char *tmp = realloc (new_name, ent_name_len);
+			/*@only@*/char *tmp = realloc (new_name, ent_name_len);
 			if (NULL == tmp) {
 				rc = -1;
 				break;

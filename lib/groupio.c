@@ -33,7 +33,7 @@
 
 #include <config.h>
 
-#ident "$Id: groupio.c 3231 2010-08-22 13:04:54Z nekral-guest $"
+#ident "$Id: groupio.c 3296 2011-02-16 20:32:16Z nekral-guest $"
 
 #include <assert.h>
 #include <stdio.h>
@@ -79,6 +79,23 @@ static void *group_parse (const char *line)
 static int group_put (const void *ent, FILE * file)
 {
 	const struct group *gr = ent;
+
+	if (   (NULL == gr)
+	    || (valid_field (gr->gr_name, ":\n") == -1)
+	    || (valid_field (gr->gr_passwd, ":\n") == -1)
+	    || (gr->gr_gid == (gid_t)-1)) {
+		return -1;
+	}
+
+	/* FIXME: fail also if gr->gr_mem == NULL ?*/
+	if (NULL != gr->gr_mem) {
+		size_t i;
+		for (i = 0; NULL != gr->gr_mem[i]; i++) {
+			if (valid_field (gr->gr_mem[i], ",:\n") == -1) {
+				return -1;
+			}
+		}
+	}
 
 	return (putgrent (gr, file) == -1) ? -1 : 0;
 }

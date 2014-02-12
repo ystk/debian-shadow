@@ -1,4 +1,4 @@
-/* $Id: defines.h 2844 2009-04-28 21:01:20Z nekral-guest $ */
+/* $Id: defines.h 3492 2011-09-18 20:44:09Z nekral-guest $ */
 /* some useful defines */
 
 #ifndef _DEFINES_H_
@@ -177,7 +177,7 @@ char *strchr (), *strrchr (), *strtok ();
  * --Nekral */
 #define SYSLOG(x)							\
 	do {								\
-		char *old_locale = setlocale(LC_ALL, NULL);		\
+		char *old_locale = setlocale (LC_ALL, NULL);		\
 		char *saved_locale = NULL;				\
 		if (NULL != old_locale) {				\
 			saved_locale = strdup (old_locale);		\

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991       , Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -36,11 +36,32 @@
 <!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='groupadd.8'>
-  <!-- $Id: groupadd.8.xml 3210 2010-04-04 23:17:11Z nekral-guest $ -->
+  <!-- $Id: groupadd.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>groupadd</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>groupadd</refname>
@@ -97,9 +118,12 @@
 	  <para>The numerical value of the group's ID. This value must be
 	    unique, unless the <option>-o</option> option is used. The value
 	    must be non-negative. The default is to use the smallest ID
-	    value greater than 999 and greater than every other group.
-	    Values between 0 and 999 are typically reserved for system
-	    accounts.
+	    value greater than or equal to <option>GID_MIN</option> and
+	    greater than every other group.
+	  </para>
+	  <para>
+	    See also the <option>-r</option> option and the
+	    <option>GID_MAX</option> description.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -175,6 +199,19 @@
 	    the <option>SYS_GID_MIN</option>-<option>SYS_GID_MAX</option>
 	    range, defined in <filename>login.defs</filename>, instead of
 	    <option>GID_MIN</option>-<option>GID_MAX</option>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
 	  </para>
 	</listitem>
       </varlistentry>

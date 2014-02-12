@@ -1,3 +1,1210 @@
+2012-05-25  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS: Set release date.
+
+2012-05-25  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/*.xml: Add author based on copyright statement.
+	* man/<ll>/*.[1358], man/<ll>/man[1358]/*.[1358],
+	man/<ll>/Makefile.am: Sort manpages per section as the generated
+	manpages.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/shadow.pot, man/po/shadow-man-pages.pot: Regenerated.
+	* po/*.po, man/po/*.po: Updated PO files.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/Makefile.am, man/generate_mans.mak: Update clean targets,
+	due to the generation in separate sub folders.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/su.1.xml: Document author to avoid warnings during
+	generation. This needs to be rolled out to other manpages.
+	* man/generate_mans.mak: Do not add a AUTHOR section in the man
+	pages.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: non PAM enabled versions: do not fail if su is called
+	without a controlling terminal. Ignore ENXIO errors when opening
+	/dev/tty.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/useradd.c: Cleanup, return code 13 no more used.
+	* man/useradd.8.xml: Document return code 14, and remove return
+	code 13.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, man/generate_mans.mak: Generate manpages in man1, man3,
+	man5, man8 subdirectories. This fix the generation of .so links
+	which did not point to a path relative to the top-level manual
+	hierarchy.
+	* man/generate_mans.mak: Update man paths accordingly.
+	* man/Makefile.am: Likewise.
+	* man/da/Makefile.am: Likewise.
+	* man/de/Makefile.am: Likewise.
+	* man/fr/Makefile.am: Likewise.
+	* man/it/Makefile.am: Likewise.
+	* man/pl/Makefile.am: Likewise.
+	* man/ru/Makefile.am: Likewise.
+	* man/sv/Makefile.am: Likewise.
+	* man/zh_CN/Makefile.am: Likewise.
+
+2012-05-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* configure.in: Prepare for next point release 4.1.5.1.
+
+2012-05-19  Nitin A Kamble  <nitin.a.kamble@intel.com>
+
+	* configure.in: Remove deprecated AM_C_PROTOTYPES (no more
+	supported in automake 1.12).
+
+2012-05-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/useradd.c: Keep the default file as much as possible to
+	avoid issue in case of crash. Use link instead of rename.
+
+2012-05-18  Peter Vrabec  <pvrabec@redhat.com>
+
+	* lib/commonio.c: Fix labeling of /etc/{passwd,shadow,group,gshadow}.
+	It will basically label them with same context as
+	/etc/{passwd+,shadow+,group+,gshadow+}
+
+2012-05-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwunconv.c: Do not check spw_close() return value (file is
+	opened readonly).
+	* src/grpunconv.c: Do not check sgr_close() return value (file is
+	opened readonly).
+
+2012-05-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/userdel.c: Fix segfault when userdel removes the
+	user's group.
+
+2012-05-17  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/login.c: Log in utmp / utmpx / wtmp also when PAM is
+	enabled. This is not done by pam_lastlog. This was broken on
+	2011-07-23.
+	* NEWS, libmisc/utmp.c: Do not log in wtmp when PAM is enabled.
+	This is done by pam_lastlog.
+
+2012-05-17  Christian Perrier  <bubulle@Êebian.org>
+
+	* man/po/fr.po: French translation of manpages completed
+
+2012-05-17  Simon Brandmair  <sbrandmair@gmx.net>
+
+	* man/po/de.po: German translation of manpages completed
+
+2012-02-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS: New placeholder for the next release (4.1.5.1 expected)
+
+2012-02-13  Mike Frysinger  <vapier@gentoo.org>
+
+	* src/passwd.c: (non PAM flavour) Report permission denied when
+	access to /etc/shadow fails with EACCES.
+
+2012-02-13  Mike Frysinger  <vapier@gentoo.org>
+
+	* lib/nscd.c: Add missing newline to error message.
+	* lib/nscd.c: If nscd is installed but not in use, then running
+	`nscd -i` will exit(1). We shouldn't warn in this case since this
+	is not abnormal behavior.
+
+2012-02-13  Mike Frysinger  <vapier@gentoo.org>
+
+	* man/.gitignore: Add generate_mans.deps
+
+2012-02-13  Mike Frysinger  <vapier@gentoo.org>
+
+	* man/grpck.8.xml: Relocate space.
+
+2012-02-13  Mike Frysinger  <vapier@gentoo.org>
+
+	* libmisc/copydir.c: Add missing #include <stdarg.h>
+
+2012-02-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS: Set release date.
+
+2012-02-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/shadow.pot, man/po/shadow-man-pages.pot: Regenerated.
+	* po/*.po, man/po/*.po: Updated PO files.
+
+2012-02-11  Giuseppe Sacco  <eppesuig@debian.org>
+
+	* man/po/it.po: Updated after review.
+
+2012-02-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/it/Makefile.am: Activate all manpages.
+	* man/po/it.po: Fix formal issues (end of lines).
+
+2012-02-11  Giuseppe Sacco  <eppesuig@debian.org>
+
+	* man/po/it.po: Updated to 1173t.
+
+2012-01-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/useradd.8.xml, man/su.1.xml, man/po/da.po, man/po/ru.po,
+	man/po/fr.po, man/po/de.po, man/po/sv.po, man/po/pl.po,
+	man/po/it.po, man/po/shadow-man-pages.pot, man/po/zh_CN.po: Fix
+	two typos. Thanks to Giuseppe Sacco. Unfuzzy translations
+	* po/kk.po, po/nb.po, po/el.po, po/ca.po, po/ja.po: Re-generate.
+	* man/login.defs.d/ENV_PATH.xml, man/login.defs.d/ENV_SUPATH.xml:
+	Fix typo.
+
+2012-01-28  Innocent De Marchi  <tangram.peces@gmail.com>
+
+	* po/ca.po: Updated to 557t.
+
+2012-01-28  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, configure.in, man/da/Makefile.am, man/Makefile.am: Build
+	manpages with more than 50% translated messages.
+	* man/fr/Makefile.am: Add missing manpages: chgpasswd.8,
+	groupmems.8, nologin.8, sulogin.8.
+	* man/de/Makefile.am: Add missing manpages: chage.1, chgpasswd.8,
+	chpasswd.8, expiry.1, faillog.5, faillog.8, getspnam.3, gpasswd.1,
+	groupadd.8, groupdel.8, groupmems.8, groupmod.8, grpck.8,
+	grpconv.8, grpunconv.8, gshadow.5, lastlog.8, login.defs.5,
+	logoutd.8, newusers.8, nologin.8, pwck.8, pwconv.8, pwunconv.8,
+	sg.1, shadow.3, shadow.5, suauth.5, useradd.8, userdel.8,
+	usermod.8, limits.5, login.access.5, porttime.5, id.1, sulogin.8
+	* man/zh_CN/Makefile.am: Add missing manpages: chgpasswd.8,
+	groupmems.8, nologin.8, sulogin.8
+	* man/pl/Makefile.am, man/sv/Makefile.am, man/it/Makefile.am:
+	Translate only manpages with more than 50% translated messages.
+	* man/po/da.po: Do not translate names of manpages (newusers,
+	limits, groups)
+
+2012-01-28  Yuri Kozlov  <yuray@komyakino.ru>
+
+	* man/po/ru.po: Updated to 1173t.
+
+2012-01-27  Thomas Blein  <tblein@tblein.eu>
+
+	* po/fr.po: Updated to 557t.
+	* man/po/fr.po: Updated to 1173t.
+
+2012-01-26  Joe Hansen  <joedalton2@yahoo.dk>
+
+	* po/da.po: Updated to 557t.
+	* man/po/da.po: Updated to 294t879u.
+
+2012-01-23  Thomas Vasileiou  <thomas-v@wildmail.com>
+
+	* po/el.po: Updated to 553t.
+
+2012-01-22  Baurzhan Muftakhidinov  <baurthefirst@gmail.com>
+
+	* po/kk.po: Updated to 557t.
+
+2012-01-21  Miguel Figueiredo  <elmig@debianpt.org>
+
+	* po/pt.po: Updated to 557t.
+
+2012-01-19  Holger Wansing  <linux@wansing-online.de> 
+
+	* po/de.po: Updated to 557t.
+
+2012-01-18  Bjørn Steensrud  <bjornst@skogkatt.homelinux.org>
+
+	* po/nb.po: Updated to 557t. Thanks also to Hans Fredrik Nordhaug.
+
+2012-01-16  NAKANO Takeo  <nakano@webmasters.gr.jp>
+
+	* po/ja.po: Updated to 557t
+
+2012-01-16  Simon Brandmair  <sbrandmair@gmx.net>
+
+	* man/po/de.po: Updated to 1173t.
+
+2012-01-14  YunQiang Su  <wzssyqa@gmail.com>
+
+	* po/zh_CN.po: Updated to 551t2f4u
+	* man/po/zh_CN.po: Updated to 1026t15f132u
+
+2012-01-09  Yuri Kozlov  <yuray@komyakino.ru>
+
+	* po/ru.po: Updated to 557t.
+
+2012-01-09  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/shadow.pot, man/po/shadow-man-pages.pot: Regenerated.
+	* po/*.po, man/po/*.po: Updated PO files.
+
+2012-01-08  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/prototypes.h: Cleanup.
+	* lib/selinux.c, lib/semanage.c: prototypes.h was not included.
+
+2011-12-09  Peter Vrabec  <pvrabec@redhat.com>
+
+	* lib/prototypes.h, lib/Makefile.am, po/POTFILES.in,
+	libmisc/copydir.c, lib/selinux.c: Move set_selinux_file_context()
+	and reset_selinux_file_context() from libmisc/copydir.c to
+	lib/selinux.c.
+	* lib/commonio.c: Use set_selinux_file_context() and
+	reset_selinux_file_context() instead of using the existing
+	database SELinux context to set the context for the newly created
+	files.
+
+2011-12-09  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/vipw.c: Do not use a hardcoded program name in the usage
+	message.
+
+2011-12-04  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/ca.po, po/cs.po, po/da.po, po/de.po, po/es.po, po/eu.po,
+	po/fr.po, po/ja.po, po/kk.po, po/pt.po, po/pt_BR.po, po/ru.po,
+	po/sk.po, po/sv.po, po/vi.po, po/zh_CN.po: Quick unfuzzy.
+
+2011-12-09  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/newusers.c, src/chpasswd.c, src/chgpasswd.c: Harmonize
+	usage messages.
+
+2011-12-09  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/Makefile.am, lib/prototypes.h, lib/selinux.c,
+	lib/semanage.c, po/POTFILES.in: Move lib/selinux.c to
+	lib/semanage.c.
+
+2011-11-21  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/usermod.c, man/usermod.8.xml: usermod -Z "" removes the
+	SELinux user mapping for the modified user.
+	* src/useradd.c: Zflg is #defined as user_selinux non empty.
+
+2011-11-21  Peter Vrabec  <pvrabec@redhat.com>
+
+	* libmisc/copydir.c: Ignore errors to copy ACLs if the operation
+	is not supported.
+
+2011-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/root_flag.c, src/gpasswd.c, src/chsh.c: Add splint
+	annotations.
+	* src/pwconv.c, src/pwunconv.c, src/grpconv.c, src/grpunconv.c:
+	Ignore return value of spw_rewind, pw_rewind, sgr_rewind, and
+	gr_rewind.
+	* lib/commonio.h: Both head and tail cannot be owned. Set tail as
+	dependent.
+	* src/expiry.c: Ignore return value of expire ().
+	* src/expiry.c: The catch_signals function does not use its sig
+	parameter.
+	* src/userdel.c: Last audit_logger parameter is a
+	shadow_audit_result, use SHADOW_AUDIT_FAILURE instead of 0.
+	* lib/selinux.c: vasprintf requires _GNU_SOURCE to be defined
+	before including stdio.h.
+	* src/chage.c: Cast 3rd date_to_str parameter to a time_t
+	* src/passwd.c: Add missing cast.
+	* lib/commonio.c: Avoid multiple statements per line.
+	* lib/commonio.c: Ignore fclose return value when the file was
+	open read only or was not changed, or if an error is already
+	reported.
+
+2011-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/faillog.c: The fail_max field is a short, use a short also
+	for the max argument of setmax / setmax_one.
+	* src/faillog.c: Fail with an error message when faillog fails to
+	write to the faillog database.
+
+2011-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/gpasswd.1.xml: Document the difference between the -r and -R
+	options.
+
+2011-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/useradd.8.xml, man/groupadd.8.xml, man/usermod.8.xml,
+	man/groupmod.8.xml: Avoid hardcoded values, and reference instead
+	the configuration options (e.g. UID_MIN)
+	* man/groupmod.8.xml, man/usermod.8.xml: Add missing reference to
+	login.defs
+	* man/login.defs.d/UID_MAX.xml, man/login.defs.d/SYS_UID_MAX.xml,
+	man/login.defs.d/GID_MAX.xml, man/login.defs.d/SYS_GID_MAX.xml:
+	Document the default values.
+
+2011-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/gpasswd.c: Change of group password enforces gshadow
+	password. Set /etc/group password to "x".
+
+2011-11-16  Peter Vrabec  <pvrabec@redhat.com>
+
+	* NEWS, src/userdel.c, man/userdel.8.xml: Add option -Z/--selinux-user.
+	* libmisc/system.c, lib/prototypes.h, libmisc/Makefile.am: Removed
+	safe_system().
+	* lib/selinux.c, po/POTFILES.in, lib/prototypes.h,
+	lib/Makefile.am: Added helper functions for semanage.
+	* NEWS, README, src/useradd.c, src/usermod.c, src/userdel.c,
+	configure.in: Use libsemanage instead of semanage.
+
+2011-11-16  Peter Vrabec  <pvrabec@redhat.com>
+
+	* src/Makefile.am: useradd may need the LIBATTR library.
+
+2011-11-16  Peter Vrabec  <pvrabec@redhat.com>
+
+	* libmisc/copydir.c: Ignore perm_copy_file() errors with errno set
+	to ENOTSUP.
+
+2011-11-16  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/useradd.c: Compilation fix when SHADOWGRP is not enabled.
+	* libmisc/root_flag.c: Add missing #include <stdio.h>
+
+2011-11-13  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/shadow.pot, man/po/shadow-man-pages.pot: Regenerated.
+	* po/*.po, man/po/*.po: Updated PO files.
+
+2011-11-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chage.c, src/chfn.c, src/chgpasswd.c, src/chpasswd.c,
+	src/chsh.c, src/groupadd.c, src/groupdel.c, src/groupmems.c,
+	src/groupmod.c, src/newusers.c, src/useradd.c, src/userdel.c,
+	src/usermod.c: Provide the PAM error
+	message instead of our own, and log error to syslog.
+	* src/groupmems.c: Exit with exit rather than fail_exit in usage().
+	* src/newusers.c: Check the number of arguments.
+	* src/newusers.c: Do not create the home directory when it is not
+	changed.
+	* src/useradd.c: Set the group password to "!" rather "x" if there
+	are no gshadow file.
+
+2011-11-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwck.c: Removed pw_opened.
+	* src/pwck.c: optind cannot be greater than argc.
+	* src/pwck.c: If spw_opened, then is_shadow is implicitly set.
+	* src/pwck.c: Do not report passwd entry without x password and a
+	shadow entry in --quiet mode (no interaction with the caller)
+	* src/pwck.c: Do not check if the last password change is in the
+	future if the time is set to 0.
+
+2011-11-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/root_flag.c: Drop privileges before changing root. The
+	--root option should not be used by regular users for suid utils.
+	* libmisc/root_flag.c: Improve error messages.
+
+2011-11-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwck.c: Compile fix for TCB.
+
+2011-11-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/copydir.c: Avoid conflict with glibc. Rename error to
+	error_acl.
+
+2011-11-11  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/newusers.8.xml: Document the optional file argument.
+	* man/newusers.8.xml: Fix the documentation of the inputs' format.
+
+2011-11-06  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/groupmod.8.xml: Document that the primary group of users may
+	be changed by groupmod -g.
+
+2011-11-06  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/newusers.c, man/newusers.8.xml: Add --root option.
+
+2011-11-06  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/vipw.c: Remove unused variable a.
+
+2011-11-06  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/generate_mans.mak: The xml-config files do not depend on the
+	Makefile.
+
+2011-10-31  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chage.c, src/chgpasswd.c, src/chpasswd.c, src/chsh.c,
+	src/faillog.c, src/gpasswd.c, src/groupadd.c, src/groupdel.c,
+	src/groupmems.c, src/groupmod.c, src/grpconv.c, src/grpunconv.c,
+	src/lastlog.c, src/newusers.c, src/passwd.c, src/pwconv.c,
+	src/pwunconv.c, src/su.c, src/useradd.c, src/userdel.c,
+	src/usermod.c, src/vipw.c: Align and sort options.
+
+2011-10-31  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/pwck.c, man/pwck.8.xm, src/grpck.c, man/grpck.8.xml:
+	Add --root option.
+
+2011-10-31  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/limits.5.xml, libmisc/limits.c: Sort limit identifiers.
+	* libmisc/limits.c: Fix support for the K limit identifier.
+	* libmisc/limits.c: Add missing default limit for L and U.
+
+2011-10-31  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwck.c, man/pwck.8.xml: Add support for long options.
+	* src/pwck.c, man/pwck.8.xml: Add -h/--help option
+	* src/grpck.c, man/grpck.8.xml: Add support for long options.
+	* src/grpck.c, man/grpck.8.xml: Add -h/--help option
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/expiry.c, man/expiry.1.xml: Add support for long options.
+	* src/expiry.c, man/expiry.1.xml: Add -h/--help option
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chfn.c, man/chfn.1.xml: Add support for long options.
+	* src/chfn.c, man/chfn.1.xml: Add -u/--help option
+	* NEWS, src/chfn.c, man/chfn.1.xml: Add --root option.
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/vipw.c, man/vipw.8.xml: Add --root option.
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/faillog.c, man/faillog.8.xml: Add --root option.
+	* NEWS, src/lastlog.c, man/lastlog.8.xml: Likewise.
+	* src/faillog.c: Add Prog variable, and prefix error messages with
+	Prog rather than "faillog".
+	* src/lastlog.c: Likewise.
+	* src/lastlog.c: Split usage in smaller messages.
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/chage.c, man/chage.1.xml: Add --root option. Open
+	audit and syslog after the potential chroot. chage's usage split
+	in smaller messages.
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/login.c: re-indent.
+	* src/login.c: Fix support for sub-logins.
+
+2011-10-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/faillog.c, src/chage.c, src/newusers.c, src/su.c: The getopt
+	index of long options is not used.
+
+2011-10-29  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/prototypes.h, libmisc/Makefile.am, libmisc/root_flag.c,
+	po/POTFILES.in: Add process_root_flag() to process the --root
+	option and chroot so that the chroot config is used and changes
+	are applied to the chroot.
+	* NEWS, src/useradd.c, man/useradd.8.xml: Add --root option. Open
+	audit after the potential chroot.
+	* NEWS, src/userdel.c, man/userdel.8.xml: Add --root option. Open
+	audit and syslog after the potential chroot. userdel's usage split
+	in smaller messages.
+	* NEWS, src/usermod.c, man/usermod.8.xml: Likewise
+	* NEWS, src/groupadd.c, man/groupadd.8.xml: Add --root option. Open
+	audit and syslog after the potential chroot.
+	* src/groupadd.c: Check atexit failures.
+	* src/groupadd.c: Return E_SUCCESS instead of exit'ing at the end
+	of main().
+	* NEWS, src/groupadd.c, man/groupadd.8.xml: Add --root option. Open
+	audit and syslog after the potential chroot.
+	* src/groupmod.c: The getopt index of long options is not used.
+	* src/groupdel.c: Add process_flags().
+	* src/groupdel.c, man/groupdel.8.xml: Add --help option.
+	* NEWS, src/groupdel.c, man/groupdel.8.xml: Add --root option. Open
+	audit and syslog after the potential chroot.
+	* src/groupdel.c: Check atexit failures.
+	* NEWS, src/pwconv.c, src/pwunconv.c, src/grpconv.c,
+	src/grpunconv.c, man/pwconv.8.xml: Add --root option.
+	* src/pwconv.c, src/pwunconv.c, src/grpconv.c, src/grpunconv.c:
+	Add --help option.
+	* src/pwconv.c, src/pwunconv.c, src/grpconv.c, src/grpunconv.c:
+	Add process_flags() and usage().
+	* NEWS, src/chpasswd.c, man/chpasswd.8.xml, src/chgpasswd.c,
+	man/chgpasswd.8.xml: Add --root option.
+	* src/chpasswd.c, src/chgpasswd.c: The getopt index of long
+	options is not used.
+	* NEWS, src/passwd.c, man/passwd.1.xml: Add --root option.
+	passwd's usage split in smaller messages.
+	* src/passwd.c: Call sanitize_env() before setting the locales.
+	* NEWS, src/groupmems.c, man/groupmems.8.xml: Add --root option.
+	Open syslog after the potential chroot.
+	* src/groupmems.c: The getopt index of long options is not used.
+	* NEWS, src/chsh.c, man/chsh.1.xml: Add --root option.
+	chsh's usage split in smaller messages.
+	* src/chsh.c: The getopt index of long options is not used.
+	* NEWS, src/gpasswd.c, man/gpasswd.1.xml: Add --root option.
+	* src/gpasswd.c: The getopt index of long options is not used.
+
+2011-10-22  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/ja/Makefile.am, man/fr/Makefile.am, man/ru/Makefile.am,
+	man/sv/Makefile.am, man/pl/Makefile.am, man/zh_CN/Makefile.am,
+	man/it/Makefile.am, man/Makefile.am: Include man_nopam in
+	EXTRA_DIST only when USE_PAM (they are already in man_MANS
+	otherwise).
+
+2011-10-22  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/su.1.xml: Document that su -c does not providea controlling
+	terminal.
+
+2011-10-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/newusers.c: Fix typo.
+	* src/useradd.c: Likewise.
+	* lib/nscd.c: Remove unused variable.
+	* lib/prototypes.h, libmisc/cleanup.c, lib/spawn.c, src/chage.c:
+	Add splint annotations.
+	* src/sulogin.c (main): env is only used when USE_PAM is not set.
+
+2011-10-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/login.defs.d/LOGIN_STRING.xml: Fix typo.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/prototypes, libmisc/basename.c (Basename): Input is a
+	constant string.
+	* lib/prototypes.h, lib/spawn.h, lib/spawn.c, src/userdel.c,
+	lib/nscd.c, lib/Makefile.am: Delete spawn.h. Move from spawn.h to
+	prototypes.h.
+	* src/userdel.c: Remove unused variables.
+	* lib/nscd.c: Remove unused header files.
+	* lib/nscd.c: Add the program name to error messages.
+	* lib/nscd.c: Indicate when nscd does not terminate normally (signal).
+	* lib/spawn.c: Updated header.
+	* lib/spawn.c: Flush stdout and stderr to avoid inheriting from
+	ongoing buffers.
+	* lib/spawn.c: Avoid implicit conversion of pointer to boolean.
+	* lib/spawn.c: Replace perror by a complete message.
+	* lib/spawn.c: Continue to wait for the child if another child
+	terminates.
+	* lib/prototypes.h: The name field from cleanup_info_mod is a
+	constant string. (username).
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/cleanup.c: Spawn children should no trigger cleanup
+	actions. Make sure only the parent (initial caller) perform the
+	cleanup actions.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/salt.c (SHA_salt_rounds): It is statically ensured that
+	the format fits in rounds_prefix.
+	* libmisc/loginprompt.c: Likewise.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/grpconv.c: Fail if not called correctly.
+	* src/grpconv.c: At the end of main, the passwd and shadow files
+	are locked. No need to check before unlocking. No need to set the
+	lock as false neither since there cannot be anymore failures.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chage.c: EPOCH is not needed, it's converted to -1 by
+	strtoday(). But we need to support "-1" specifically.
+	* src/chage.c: Fix usage: LOGIN is mandatory.
+	* src/chage.c: Display disabled expiry or last change as "-1"
+	instead of 1969-12-31. 1969-12-31 is still supported as input from
+	the user.
+	* src/chage.c: Exit cleanly with fail_exit() (lock files were not
+	removed).
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/useradd.c: Remove def_file. It was always set to
+	USER_DEFAULTS_FILE.
+	* src/useradd.c: Fix cut&paste issue causing bad warning when
+	the useradd.default file contains an invalid INACTIVE= value.
+	* src/useradd.c: Added missing end of line for rename errors.
+	* src/useradd.c: Added -D synopsis to the usage message.
+	* src/useradd.c: Do not scale_age(-1), just use -1.
+	* src/useradd.c: Added FIXME to be fixed later.
+	* src/useradd.c: Allow -e -1 when there is no shadow file.
+	* src/useradd.c: Fail, but do not print the usage message when the
+	-e argument is not valid.
+	* src/useradd.c: No need to check for oflg since uflg is
+	already checked.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Too much const were added on 2011-08-15. pw in
+	save_caller_context() is allocated and freed.
+	* src/su.c: Added missing #endif indication
+	* src/su.c (save_caller_context): password only needed if
+	SU_ACCESS and !USE_PAM.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/usermod.c: date_to_str() is always called with negativ set
+	to "never", remove this argument.
+	* src/usermod.c: Added missing cast for gr_free argument.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwconv.c: Fail if not called correctly.
+	* src/pwconv.c: At the end of main, the passwd and shadow files
+	are locked. No need to check before unlocking.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/newusers.c: Initially set the passwd's password to '*'
+	instead of 'x'. Only when it is confirmed that a shadow entry is
+	(will be) added, set the passwd's password to 'x'.
+	* src/newusers.c: An invalid line is an error. A failure needs to
+	be reported.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/gpasswd.c: Remove log_gpasswd_success_gshadow(). Writing in
+	gshadow is the last sub-task.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chsh.c: No needto remove lines tarting with '#' from
+	/etc/shells. This is already done by getusershell() and these
+	shell would fail the access(X_OK) test.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/generate_mans.mak: Fix the generation of translated man
+	pages. xml2po removed the comment from empty headers and the
+	config was no more inserted.
+
+2011-09-18  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/chage.1.xml: The LOGIN argument is not optional.
+	* man/login.defs.d/QUOTAS_ENAB.xml: Document the dependency
+	between /etc/limits and QUOTAS_ENAB.
+
+2011-08-20  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* po/POTFILES.in: Added lib/spawn.c.
+
+2011-08-20  Jonathan Nieder  <jrnieder@gmail.com>
+
+	* lib/Makefile.am: Added lib/spawn.c and lib/spawn.h.
+	* lib/nscd.c, lib/spawn.c, lib/spawn.h: It is not possible to
+	differentiate between an nscd failure, and a failure to execute
+	due to no nscd with posix_spawn. Use our own run_command routine.
+	* src/userdel.c: Use run_command()
+
+2011-08-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/groupmod.c: Ignore return value from snprintf.
+	* src/groupmod.c: Add static qualifier to the cleanup structures.
+	* src/groupmod.c: Check atexit failures.
+
+2011-08-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/usermod.c: Do not assign static to NULL.
+	* src/usermod.c (date_to_str): buf needs to be unique (e.g.
+	independent from negativ), and is an out buffer.
+	* src/usermod.c: Ignore return value from snprintf, and force
+	nul-termination of buffer.
+	* src/usermod.c: Improve memory management.
+	* src/usermod.c: An audit bloc was not reachable, moved above on
+	success to move the home directory.
+	* src/usermod.c: Ignore close() return value for the mailbox
+	(opened read only).
+
+2011-08-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Added const modifiers.
+	* lib/prototypes: Synchronize splint annotations.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Add splint annotations.
+	* src/su.c: Set caller_on_console as boolean.
+	* src/su.c: Ignore return value from fputs (usage) / puts (prompt).
+	* src/su.c: Improved memory management.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chgpasswd.c, src/chpasswd.c, src/newusers.c: Replace cflg by
+	a test on crypt_method.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/chowndir.c: Add splint annotations.
+	* src/chgpasswd.c: Likewise.
+	* src/chpasswd.c: Likewise.
+	* src/newusers.c: Likewise.
+	* libmisc/salt.c, lib/prototypes.h (crypt_make_salt): Likewise.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/gshadow_.h: Fix typo in comment.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/prototypes.h, libmisc/getgr_nam_gid.c: getgr_nam_gid()
+	returns an allocated structure.
+
+2011-08-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Add annotations to indicate that su_failure() does
+	not return.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/commonio.c: Display PID as unsigned long.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/useradd.c: Remove unused Zflg.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chgpasswd.c: Fix typo sp -> sg. sg_namp -> sg_name
+	* src/chgpasswd.c: Always update the group file when SHADOWGRP is
+	not enabled.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/newgrp.c: Fix typo in notreached annotation.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/usermod.c: Add annotations to indicate that fail_exit() does
+	not return.
+	* src/usermod.c: Fix typo in notreached annotation.
+
+2011-07-30  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/find_new_uid.c: free (used_uids) on return.
+	* libmisc/find_new_gid.c: free (used_gids) on return.
+
+2011-07-28  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/commonio.c: Fix NIS commit from 2011-07-14.
+
+2011-07-28  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/chpasswd.c: Create a shadow entry if the password is
+	set to 'x' in passwd and there are no entry in shadow for the
+	user.
+	* NEWS, src/chgpasswd.c: Create a gshadow entry if the password is 
+	set to 'x' in group and there are no entry in gshadow for the 
+	group.
+
+2011-07-28  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/pwunconv.c: Exit after printing usage when arguments or
+	options are provided.
+	* src/pwunconv.c: Re-indent.
+	* src/pwunconv.c: Open the shadow file read only.
+	* src/grpunconv.c: Exit after printing usage when arguments or
+	options are provided.
+	* src/grpunconv.c: Open the gshadow file read only.
+
+2011-07-28  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chgpasswd.c: Fix typo.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/login.c: Do not log in utmp / utmpx / wtmp when PAM is
+	enabled. This is already done by pam_lastlog. Note that
+	pam_lastlog can only log the parent PID, not the PID of the
+	process forked by login.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chpasswd.c: Add annotations to indicate that usage() does
+	not return.
+	* src/chpasswd.c: Reindent.
+	* src/chpasswd.c: Remove dead code. No need to set crypt_method
+	to NULL when it is already NULL. sflg is only set if crypt_method
+	is not NULL.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/lastlog.c: Add annotations to indicate that usage() does not
+	return.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/faillog.c: Add annotations to indicate that usage() does not
+	return.
+	* src/faillog.c: Fix message: this is faillog, not lastlog.
+	* src/faillog.c: Check that there are no extra arguments after
+	parsing the options.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/chgpasswd.c: Add annotations to indicate that usage() does
+	not return.
+	* src/chgpasswd.c: Split usage in smaller parts. Those parts are
+	already translated for chpasswd. Usage is now closer to
+	chpasswd's.
+	* src/chgpasswd.c: Remove dead code. No need to set crypt_method
+	to NULL when it is already NULL. sflg is only set if crypt_method
+	is not NULL.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/expiry.c: Remove dead code.
+	* src/expiry.c: Improve comments.
+
+2011-07-23  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/grpck.c: Added comments.
+	* src/grpck.c: Avoid implicit conversion of pointer to boolean.
+	* src/grpck.c: Remove dead code. argc cannot be lower than optind.
+	Avoid checking twice in a row for NULL != list[i].
+
+2011-07-22  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/find_new_gid.c, libmisc/find_new_uid.c: Fail in case of
+	invalid configuration. 
+	* libmisc/find_new_gid.c, libmisc/find_new_uid.c: Updated
+	comments.
+	* libmisc/find_new_gid.c, libmisc/find_new_uid.c: Be more strict
+	on the loop stop conditions. Stop if we passed the limit, even if
+	the limit itself was never noticed.
+
+2011-07-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/po/fr.po: Fix some spacing issues due to configuration
+	variants.
+
+2011-07-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/passwd.c: Overflow when computing the number of days based
+	on the scaling. Use of long long needed.
+
+2011-07-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, lib/commonio.h, lib/commonio.c: Additional messages to
+	indicate why locking failed.
+	* NEWS, lib/commonio.c: Fix the sort algorithm in case of NIS. NIS
+	entries were dropped.
+	* lib/commonio.c: NIS entries can start by '+' or '-'.
+
+2011-07-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/groupmod.c: When the gshadow file exists but there are
+	no gshadow entries, an entry is created if the password is changed
+	and group requires a shadow entry.
+
+2011-07-14  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/usermod.c: Fix typo in comment.
+	* src/usermod.c (move_home): It is always an error to use -m if
+	the new home directory already exist (independently from the
+	existence of the old home directory did not exist)
+	* src/usermod.c (process_flags): Report usage if no options are
+	provided. Update the error message.
+	* src/usermod.c (process_flags): Check option compatibility and
+	dependency before options are discarded when no changes are
+	requested.
+	* src/usermod.c (process_flags): Check for oflg is not needed to
+	check if changes are needed.
+	* src/usermod.c: usage() does not return. Add annotations.
+	* src/usermod.c (update_gshadow): is_member was computed twice.
+	* src/usermod.c (update_group, update_gshadow): Reduce complexity
+	and document checks. Some checks were always true/false within
+	their call context.
+	* NEWS, src/usermod.c; man/usermod.8.xml: When the shadow file
+	exists but there are no shadow entries, an entry has to be created
+	if the password is changed and passwd requires a shadow entry, or
+	if aging features are used (-e or -f). Document this and also that
+	-e and -f require a shadow file.
+	* man/usermod.8.xml: Document behavior of an empty EXPIRE_DATE.
+	* man/usermod.8.xml: Document that the mail spool might have to be
+	renamed (as for the homedir)
+	* src/usermod.c (new_pwent): Document that pw_locate will not fail
+	because getpwnam returned successfully.
+	* src/usermod.c (process_flags): Do not display the usage in case
+	of an invalid -f value (similar to -e).
+	* src/usermod.c (process_flags): Indicate that the user name is
+	invalid, instead of just a 'field'.
+
+2011-07-08  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/groupadd.c: Fix typo in comment.
+	* src/userdel.c: Fix typo from 2011-06-04. Report failure on the
+	mailfile instead of user_home.
+	* lib/fields.c: Fixed typo from 2010-02-15. field instead of cp
+	ought to be checked.
+	* src/vipw.c: Use Prog instead of progname. This is needed since
+	Prog is used in the library.
+	* configure.in: Fix typo. libcrack default is 'no'.
+	* src/groupmod.c: Avoid implicit conversion of pointer to boolean.
+	* src/groupmod.c: osgrp can be set only if pflg || nflg. No need
+	to check for pflg || nflg again
+
+2011-07-08  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/*.xml, man/config.xml.in: Add source and version
+	information. This reduce the amount of warnings during the
+	manpages generation.
+
+2011-06-25  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/passwd.1.xml: Added reference to chpasswd(8).
+	* man/po/ru.po: Add space between option and argument.
+
+2011-06-16  Francisco Javier Cuadrado  <fcocuadrado@gmail.com>
+
+	* po/es.po: Spanish translation
+
+2011-06-16  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/isexpired.c: Added parenthesis.
+	* libmisc/env.c: Added comments.
+	* libmisc/env.c: Avoid implicit conversion of pointer to boolean.
+
+2011-06-16  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: environ is provided by <unistd.h>.
+	* src/su.c: Added function prototypes.
+	* src/su.c: Rename shellstr parameter to shellname to avoid
+	collision with static variable.
+	* NEWS, src/su.c: Added support for PAM modules which change
+	PAM_USER.
+
+2011-06-13  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c (prepare_pam_close_session): Extract the creation of a
+	child and listening for signal in the parent from run_shell().
+	prepare_pam_close_session() is now executed before the creation of
+	the pam session and before the UID is changed. This allows to
+	close the session as root.
+	* src/su.c: Also drop the controlling terminal when PAM is not
+	used.
+	* src/su.c: Remove run_shell().
+	* src/su.c: After prepare_pam_close_session() there is no need to
+	close the session in the child. Added pam_setcred to
+	prepare_pam_close_session().
+
+2011-06-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c (save_caller_context): Extract from main() the code
+	used to save the caller's context.
+	* src/su.c: Split check_perms() in to a PAM (check_perms_pam) and
+	a non-PAM (check_perms_nopam) version.
+	* src/su.c: Cleanup check_perms_nopam().
+	* src/su.c: Merge environment setting blocks after the creation of
+	the session.
+	* src/su.c: Close the password databases together with syslog.
+	* src/su.c: Extract command line processing from main().
+	* src/su.c: Extract export of environment from main().
+
+2011-06-10  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Group some of the environment processing blocks. The
+	definition of shellstr, PATH and IFS is not influenced (getenv,
+	getdef, restricted_shell) by and does not influence (addenv does
+	not change environ) the authentication. And the authentication
+	did not overwrite those definitions. This will ease an extraction
+	from the big main() function.
+	* src/su.c: Move definition of change_environment and shellstr
+	after the switch to the final subsystem. The previous architecture
+	forced to always change the environment (the shell starts with a
+	'*' and was thus restricted, and change_environment could not be
+	reset to false).
+	* src/su.c: No need to change the user's shell in case of
+	subsystem root. Update the comments.
+	* src/su.c: Define shellstr before the environment so that
+	restricted_shell is called only once. This will allow moving the
+	environment definition after the switch to the new user.
+	* src/su.c: Extract the authentication from the main function.
+	* lib/prototypes.h, src/suauth.c, src/su.c (check_su_auth): Do not
+	use the pwent global variable to communicate between APIs of
+	different files. Added boolean parameter su_to_root to
+	check_su_auth().
+	* src/su.c (check_perms): Return the passwd entry of the finally
+	authenticated user. Remove usage of the pwent variable.
+	* src/su.c: The password of the caller is the one from the
+	spwd structure only if the passwd's password is 'x'.
+	* src/su.c: Cleanup local variables.
+
+2011-06-10  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/su.c: Updating pwent after expire() is not useful. Only the
+	password information may have changed and they are not used
+	anymore afterwards.
+	* src/su.c: No need to call expire() if there are no shadow entry.
+	No need to convert a passwd entry into an spwd entry in that case.
+
+2011-06-12  Thomas Blein  <tblein@tblein.eu>
+
+	* man/po/fr.po: French manpages translation
+
+2011-06-05  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/su.c: Do not forward the controlling terminal to
+	commands executed with -c. This prevents tty hijacking which could
+	lead to execution with the caller's privileges. This required to
+	forward signals from the terminal (SIGINT, SIGQUIT, SIGTSTP) to
+	the executed command.
+
+2011-06-05  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/userdel.c: Do not remove a group with the same name as
+	the user (usergroup) if this group isn't the user's primary group.
+
+2011-06-04  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/userdel.c: Check the existence of the user's mail
+	spool before trying to remove it. If it does not exist, a warning
+	is issued, but no failure.
+
+2011-06-03  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* src/sulogin.c: Added Prog, needed because of the last xmalloc()
+	change.
+
+2011-06-03  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/zh_CN/, man/zh_CN/Makefile.am: Added directory, and zh_CN
+	Makefile.
+	* man/Makefile.am: Build zh_CN pages.
+	* man/generate_translations.mak: Add config.xml to CLEANFILES.
+	* man/po/zh_CN.po: limits, groups, faillog, expiry should not be
+	translated (command name, file name), also this broke the build
+	system as they are used to derive manpage names.
+
+2011-06-02  Peter Vrabec  <pvrabec@redhat.com>
+
+	* src/lastlog.c, src/faillog.c: Fix underflows causing wrong entry
+	to be displayed.
+
+2011-06-02  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/xmalloc.c: Harmonize message.
+
+2011-06-02  Peter Vrabec  <pvrabec@redhat.com>
+
+	* libmisc/find_new_uid.c, libmisc/find_new_gid.c: Add missing
+	memory allocation check.
+
+2011-06-02  Cal Peake  <cp@absolutedigital.net>
+
+	* NEWS, libmisc/addgrps.c: Fix allocator loop. Continue to
+	getgroups() when getgroups fails (-1) with errno==EINVAL.
+
+2011-06-01  Simon Brandmair  <sbrandmair@gmx.net>
+
+	* man/newusers.8.xml, man/suauth.5.xml, man/suauth.5.xml,
+	  man/logoutd.8.xml, man/chgpasswd.8.xml, man/groups.1.xml,
+	  man/faillog.5.xml, man/login.defs.d/MD5_CRYPT_ENAB.xml,
+	  man/login.defs.d/DEFAULT_HOME.xml,
+	  man/login.defs.d/LOGIN_RETRIES.xml,
+	  man/login.defs.d/MD5_CRYPT_ENAB.xml,
+	  man/login.defs.d/PORTTIME_CHECKS_ENAB.xml, 
+	  man/login.defs.d/SHA_CRYPT_MIN_ROUNDS.xml:
+	  Fix typos
+	* man/po/de.po: German translation of manpages completed
+
+2011-05-23  Innocent De Marchi  <tangram.peces@gmail.com>
+
+	* po/ca.po: Catalan translation completed
+
+2011-04-22  Miguel Figueiredo  <elmig@debianpt.org>
+
+	* po/pt.po: Portuguese translation completed
+
+2011-04-22  Thomas Blein  <tblein@tblein.eu>
+
+	* po/fr.po: French translation completed
+
+2011-04-16  Holger Wansing  <linux@wansing-online.de>
+
+	* po/de.po: German translation completed
+
+2011-04-15  Fred Maranhão  <fred.maranhao@gmail.com>
+
+	* po/pt_BR.po: Brazilian Portuguese translation completed
+
+2011-04-10  Yuri Kozlov  <yuray@komyakino.ru>
+
+	* po/ru.po: Russian translation completed
+
+2011-04-07  Daniel Nylander  <po@danielnylander.se>
+
+	* po/sv.po: Swedish translation completed
+
+2011-04-07  Joe Dalton  <joedalton2@yahoo.dk>
+
+	* po/da.po: Danish translation completed
+
+2011-04-05  Timur Birsh  <taem@linukz.org>
+
+	* po/kk.po: Kazakh translation completed
+
+2011-04-05  NAKANO Takeo  <nakano@st.seikei.ac.jp>
+
+	* po/ja.po: Japanese translation completed
+
+2011-03-30  YunQiang Su  <wzssyqa@gmail.com>
+
+	* man/po/zh_CN.po: convert Simplified Chinese translation 
+	  of manpages to gettext
+	* po/zh_CN.po: Simplified Chinese translation completed
+
+2010-02-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* man/ru/Makefile.am: Remove double inclusion of $(man_nopam)
+
+2010-02-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* libmisc/user_busy.c, src/userdel.c, src/usermod.c: Warn in
+	user_busy() rather than in src/userdel.c or src/usermod.c to
+	provide more accurate failure cause (user is logged in or user
+	still executes processes).
+
+2010-02-15  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* lib/groupio.c, lib/sgroupio.c, lib/shadowio.c, lib/pwio.c: Check
+	entry validity before commits to databases.
+	* libmisc/fields.c, libmisc/Makefile.am, lib/fields.c,
+	lib/Makefile.am, po/POTFILES.in: fields.c moved from libmisc to
+	lib.
+	* lib/fields.c: Fail if input pointer is NULL.
+
+2010-02-13  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, src/chfn.c, src/chsh.c: Fix CVE-2011-0721: forbid \n in
+	gecos or shell.
+
+2011-02-12  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* autogen.sh: Restore original autoreconf (see 2010-08-29's change
+	for autogen.sh)
+	* configure.in, man/po/Makefile.in.in, man/po/Makefile.in:
+	Makefile.in.in replaced by Makefile.in to avoid config.status
+	issues when there are multiple po directories.
+	* man/po/LINGUAS: Adapted to above change.
+	* man/po/POTFILES.in, man/po/XMLFILES: POTFILES.in replaced by
+	XMLFILES.
+	* man/Makefile.am: generate_mans.deps shall be included by make,
+	not automake.
+
+2010-11-19  Nicolas François  <nicolas.francois@centraliens.net>
+
+	* NEWS, libmisc/console.c: Fix CONSOLE parser. This caused login
+	to hang when CONSOLE was configured with a colon separated list of
+	TTYs.  See http://bugs.gentoo.org/show_bug.cgi?id=324419
+
 2010-09-05  Nicolas François  <nicolas.francois@centraliens.net>
 
 	Integrate review comments from Julien Cristau
@@ -1218,7 +2425,7 @@
 
 2009-05-18  Nicolas François  <nicolas.francois@centraliens.net>
 
-	* man/userdel.8.xml: Document tat -f may force teh deletion of a
+	* man/userdel.8.xml: Document that -f may force the deletion of a
 	busy user.
 
 2009-05-18  Nicolas François  <nicolas.francois@centraliens.net>
@@ -3542,7 +4749,7 @@
 	src/groupmod.c, src/grpck.c, src/grpconv.c, src/grpunconv.c,
 	src/newusers.c, src/passwd.c, src/pwck.c, src/pwconv.c,
 	src/pwunconv.c, src/useradd.c, src/userdel.c, src/usermod.c:
-	Harmonize the erro & syslog messages in case of failure of the
+	Harmonize the error & syslog messages in case of failure of the
 	*_lock(), *_open(), *_close(), *_unlock(), *_remove() functions.
 	* src/chgpasswd.c, src/chpasswd.c, src/usermod.c: Avoid
 	capitalized messages.
@@ -5392,7 +6599,7 @@
 2008-02-26  Nicolas François  <nicolas.francois@centraliens.net>
 
 	* src/gpasswd.c: When a password is moved to the gshadow file, use
-	"x" instead of "x" to indicate that the password is shadowed
+	"x" instead of "!" to indicate that the password is shadowed
 	(consistency with grpconv).
 
 2008-02-26  Nicolas François  <nicolas.francois@centraliens.net>

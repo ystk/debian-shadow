@@ -43,7 +43,7 @@
 #include <pwd.h>
 #include <time.h>
 
-#ident "$Id: isexpired.c 2777 2009-04-23 17:43:27Z nekral-guest $"
+#ident "$Id: isexpired.c 3362 2011-06-16 21:25:36Z nekral-guest $"
 
 
 /*
@@ -107,7 +107,7 @@ int isexpired (const struct passwd *pw, /*@null@*/const struct spwd *sp)
 
 	if (   (-1 == sp->sp_lstchg)
 	    || (-1 == sp->sp_max)
-	    || (sp->sp_max >= (10000L * DAY / SCALE))) {
+	    || (sp->sp_max >= ((10000L * DAY) / SCALE))) {
 		return 0;
 	}
 

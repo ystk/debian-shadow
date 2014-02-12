@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2001 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2008, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: chsh.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: chsh.c 3640 2011-11-19 21:51:52Z nekral-guest $"
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -71,8 +71,8 @@ static bool pw_locked = false;
 /* external identifiers */
 
 /* local function prototypes */
-static void fail_exit (int code);
-static void usage (int status);
+static /*@noreturn@*/void fail_exit (int code);
+static /*@noreturn@*/void usage (int status);
 static void new_fields (void);
 static bool shell_is_listed (const char *);
 static bool is_restricted_shell (const char *);
@@ -83,7 +83,7 @@ static void update_shell (const char *user, char *loginsh);
 /*
  * fail_exit - do some cleanup and exit with the given error code
  */
-static void fail_exit (int code)
+static /*@noreturn@*/void fail_exit (int code)
 {
 	if (pw_locked) {
 		if (pw_unlock () == 0) {
@@ -101,14 +101,18 @@ static void fail_exit (int code)
 /*
  * usage - print command line syntax and exit
  */
-static void usage (int status)
+static /*@noreturn@*/void usage (int status)
 {
-	fputs (_("Usage: chsh [options] [LOGIN]\n"
-	         "\n"
-	         "Options:\n"
-	         "  -h, --help                    display this help message and exit\n"
-	         "  -s, --shell SHELL             new login shell for the user account\n"
-	         "\n"), (E_SUCCESS != status) ? stderr : stdout);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] [LOGIN]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs (_("  -s, --shell SHELL             new login shell for the user account\n"), usageout);
+	(void) fputs ("\n", usageout);
 	exit (status);
 }
 
@@ -161,10 +165,6 @@ static bool shell_is_listed (const char *sh)
 #ifdef HAVE_GETUSERSHELL
 	setusershell ();
 	while ((cp = getusershell ())) {
-		if (*cp == '#') {
-			continue;
-		}
-
 		if (strcmp (cp, sh) == 0) {
 			found = true;
 			break;
@@ -198,26 +198,27 @@ static bool shell_is_listed (const char *sh)
 }
 
 /*
- *  * process_flags - parse the command line options
+ * process_flags - parse the command line options
  *
  *	It will not return if an error is encountered.
  */
 static void process_flags (int argc, char **argv)
 {
-	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
-		{"help", no_argument, NULL, 'h'},
+		{"help",  no_argument,       NULL, 'h'},
+		{"root",  required_argument, NULL, 'R'},
 		{"shell", required_argument, NULL, 's'},
 		{NULL, 0, NULL, '\0'}
 	};
 
-	while ((c =
-		getopt_long (argc, argv, "hs:", long_options,
-		             &option_index)) != -1) {
+	while ((c = getopt_long (argc, argv, "hR:s:",
+	                         long_options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
 			usage (E_SUCCESS);
+			/*@notreached@*/break;
+		case 'R': /* no-op, handled in process_root_flag () */
 			break;
 		case 's':
 			sflg = true;
@@ -324,13 +325,16 @@ static void check_perms (const struct passwd *pw)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		exit (E_NOPERM);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 }
 
@@ -436,20 +440,22 @@ int main (int argc, char **argv)
 
 	sanitize_env ();
 
-	(void) setlocale (LC_ALL, "");
-	(void) bindtextdomain (PACKAGE, LOCALEDIR);
-	(void) textdomain (PACKAGE);
-
-	/*
-	 * This command behaves different for root and non-root users.
-	 */
-	amroot = (getuid () == 0);
-
 	/*
 	 * Get the program name. The program name is used as a prefix to
 	 * most error messages.
 	 */
 	Prog = Basename (argv[0]);
+
+	(void) setlocale (LC_ALL, "");
+	(void) bindtextdomain (PACKAGE, LOCALEDIR);
+	(void) textdomain (PACKAGE);
+
+	process_root_flag ("-R", argc, argv);
+
+	/*
+	 * This command behaves different for root and non-root users.
+	 */
+	amroot = (getuid () == 0);
 
 	OPENLOG ("chsh");
 
@@ -528,7 +534,7 @@ int main (int argc, char **argv)
 	 * users are restricted to using the shells in /etc/shells.
 	 * The shell must be executable by the user.
 	 */
-	if (valid_field (loginsh, ":,=") != 0) {
+	if (valid_field (loginsh, ":,=\n") != 0) {
 		fprintf (stderr, _("%s: Invalid entry: %s\n"), Prog, loginsh);
 		fail_exit (1);
 	}

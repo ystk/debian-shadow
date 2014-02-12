@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1991 - 1994, Julianne Frances Haugh
- * Copyright (c) 2008 - 2009, Nicolas François
+ * Copyright (c) 2008 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "prototypes.h"
 #include "groupio.h"
@@ -64,6 +65,7 @@ int find_new_gid (bool sys_group,
 			(void) fprintf (stderr,
 			                _("%s: Invalid configuration: GID_MIN (%lu), GID_MAX (%lu)\n"),
 			                Prog, (unsigned long) gid_min, (unsigned long) gid_max);
+			return -1;
 		}
 	} else {
 		gid_min = (gid_t) getdef_ulong ("SYS_GID_MIN", 101UL);
@@ -73,9 +75,16 @@ int find_new_gid (bool sys_group,
 			(void) fprintf (stderr,
 			                _("%s: Invalid configuration: SYS_GID_MIN (%lu), GID_MIN (%lu), SYS_GID_MAX (%lu)\n"),
 			                Prog, (unsigned long) gid_min, getdef_ulong ("GID_MIN", 1000UL), (unsigned long) gid_max);
+			return -1;
 		}
 	}
-	used_gids = alloca (sizeof (bool) * (gid_max +1));
+	used_gids = malloc (sizeof (bool) * (gid_max +1));
+	if (NULL == used_gids) {
+		fprintf (stderr,
+		         _("%s: failed to allocate memory: %s\n"),
+		         Prog, strerror (errno));
+		return -1;
+	}
 	memset (used_gids, false, sizeof (bool) * (gid_max + 1));
 
 	if (   (NULL != preferred_gid)
@@ -87,6 +96,7 @@ int find_new_gid (bool sys_group,
 	     * changes */
 	    && (gr_locate_gid (*preferred_gid) == NULL)) {
 		*gid = *preferred_gid;
+		free (used_gids);
 		return 0;
 	}
 
@@ -152,43 +162,47 @@ int find_new_gid (bool sys_group,
 	}
 
 	/*
-	 * If a group with GID equal to GID_MAX exists, the above algorithm
-	 * will give us GID_MAX+1 even if not unique. Search for the first
-	 * free GID starting with GID_MIN.
+	 * If a group (resp. system group) with GID equal to GID_MAX (resp.
+	 * GID_MIN) exists, the above algorithm will give us GID_MAX+1
+	 * (resp. GID_MIN-1) even if not unique. Search for the first free
+	 * GID starting with GID_MIN (resp. GID_MAX).
 	 */
 	if (sys_group) {
-		if (group_id == gid_min - 1) {
+		if (group_id < gid_min) {
 			for (group_id = gid_max; group_id >= gid_min; group_id--) {
 				if (false == used_gids[group_id]) {
 					break;
 				}
 			}
-			if ( group_id < gid_min ) {
+			if (group_id < gid_min) {
 				fprintf (stderr,
 				         _("%s: Can't get unique system GID (no more available GIDs)\n"),
 				         Prog);
 				SYSLOG ((LOG_WARN,
 				         "no more available GID on the system"));
+				free (used_gids);
 				return -1;
 			}
 		}
 	} else {
-		if (group_id == gid_max + 1) {
-			for (group_id = gid_min; group_id < gid_max; group_id++) {
+		if (group_id > gid_max) {
+			for (group_id = gid_min; group_id <= gid_max; group_id++) {
 				if (false == used_gids[group_id]) {
 					break;
 				}
 			}
-			if (group_id == gid_max) {
+			if (group_id > gid_max) {
 				fprintf (stderr,
 				         _("%s: Can't get unique GID (no more available GIDs)\n"),
 				         Prog);
 				SYSLOG ((LOG_WARN, "no more available GID on the system"));
+				free (used_gids);
 				return -1;
 			}
 		}
 	}
 
+	free (used_gids);
 	*gid = group_id;
 	return 0;
 }

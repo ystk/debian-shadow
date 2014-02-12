@@ -1,8 +1,31 @@
-$Id: NEWS 3279 2010-08-29 19:02:41Z nekral-guest $
+$Id: NEWS 3743 2012-05-25 11:51:53Z nekral-guest $
 
-shadow-4.1.4.2 -> shadow-4.1.5					UNRELEASED
+shadow-4.1.5 -> shadow-4.1.5.1					2012-05-25
 
-- general
+- login
+  * Log into utmp(x) when PAM is enabled, but do not log into wtmp.
+    This complete pam_lastlog which logs into wtmp and in into utmp(x).
+- su
+  * non PAM enabled versions: do not fail if su is called without a
+    controlling terminal.
+- userdel
+  * Fix segfault when userdel removes the user's group.
+
+*** documentation
+  * .so links now point to paths relative to the top-level manual hierarchy
+
+*** translation
+  * Updated French man pages translation.
+  * Updated German man pages translation.
+  * Updated Polish man pages translation. (logoutd.8)
+
+shadow-4.1.4.3 -> shadow-4.1.5					2012-02-12
+
+*** security
+  * su -c could be abused by the executed command to invoke commands with
+    the caller privileges. See below. (CVE-2005-4890)
+
+*** general
   * report usage error to stderr, but report usage help to stdout (and return
     zero) when explicitly requested (e.g. with --help).
   * initial support for tcb (http://openwall.com/tcb/) for useradd,
@@ -10,39 +33,141 @@ shadow-4.1.4.2 -> shadow-4.1.5					UNRELEASED
   * Added support for ACLs and Extended Attributes in useradd and usermod.
     Support shall be enabled with the new --with-acl or --with-attr
     configure options.
+  * Added diagnosis for lock failures.
+  * use libsemanage instead of the semanage tool.
 
--chpasswd
+- chage
+  * Add --root option.
+- chfn
+  * Add --root option.
+- chgpasswd
+  * When the gshadow file exists but there are no gshadow entries, an entry
+    is created if the password is changed and group requires a
+    shadow entry.
+  * Add --root option.
+- chpasswd
   * PAM enabled versions: restore the -e option to allow restoring
     passwords without knowing those passwords. Restore together the -m
     and -c options. (These options were removed in shadow-4.1.4 on PAM
     enabled versions)
+  * When the shadow file exists but there are no shadow entries, an entry
+    is created if the password is changed and passwd requires a
+    shadow entry.
+  * Add --root option.
+- chsh
+  * Add --root option.
 - faillog
   * The -l, -m, -r, -t options only act on the existing users, unless -a is
     specified.
+  * Add --root option.
+- gpasswd
+  * Add --root option.
+- groupadd
+  * Add --root option.
+- groupdel
+  * Add --root option.
+- groupmems
+  * Fix parsing of gshadow entries.
+  * Add --root option.
 - groupmod
   * Fixed groupmod when configured with --enable-account-tools-setuid.
--login
+  * When the gshadow file exists but there are no gshadow entries, an entry
+    is created if the password is changed and group requires a
+    shadow entry.
+  * Add --root option.
+- grpck
+  * Add --root option.
+  * NIS entries were dropped by -s (sort).
+- grpconv
+  * Add --root option.
+- grpunconv
+  * Add --root option.
+- lastlog
+  * Add --root option.
+- login
   * Fixed limits support (non PAM enabled versions only)
   * Added support for infinite limits and group based limits (non PAM
     enabled versions only)
+  * Fixed infinite loop when CONSOLE is configured with a colon-separated
+    list of TTYs.
+  * Fixed warning and support for CONSOLE_GROUPS for users member of more
+    than 16 groups.
+  * Do not log into utmp(x) or wtmp when PAM is enabled. This is done by
+    pam_lastlog.
+- newgrp, sg
+  * Fix parsing of gshadow entries.
+- newusers
+  * Add --root option.
+- passwd
+  * Add --root option.
+- pwpck
+  * NIS entries were dropped by -s (sort).
+  * Add --root option.
+- pwconv
+  * Add --root option.
+- pwunconv
+  * Add --root option.
+- useradd
+  * If the skeleton directory contained hardlinked files, copies of the
+    hardlink were removed from the skeleton directory.
+  * Add --root option.
+- userdel
+  * Check the existence of the user's mail spool before trying to remove
+    it. If it does not exist, a warning is issued, but no failure.
+  * Do not remove a group with the same name as the user (usergroup) if
+    this group isn't the user's primary group.
+  * Add --root option.
+  * Add --selinux-user option.
+- usermod
+  * Accept options in any order (username not necessarily at the end)
+  * When the shadow file exists but there are no shadow entries, an entry
+    is created if the password is changed and passwd requires a
+    shadow entry, or if aging features are used (-e or -f).
+  * Add --root option.
 - su
   * Document the su exit values.
   * When su receives a signal, wait for the child to terminate (after
     sending a SIGTERM), and kill it only if it did not terminate by itself.
     No delay will be enforced if the child cooperates.
   * Default ENV_SUPATH is /sbin:/bin:/usr/sbin:/usr/bin
-- newgrp, sg, groupmems
-  * Fix parsing of gshadow entries.
-- useradd
-  * If the skeleton directory contained hardlinked files, copies of the
-    hardlink were removed from the skeleton directory.
-- usermod
-  * Accept options in any order (username not necessarily at the end)
+  * Fixed infinite loop when CONSOLE is configured with a colon-separated
+    list of TTYs.
+  * Fixed warning and support for CONSOLE_GROUPS for users member of more
+    than 16 groups.
+  * Do not forward the controlling terminal to commands executed with -c.
+    This prevents tty hijacking which could lead to execution with the
+    caller's privileges.
+  * Close PAM sessions as root. This will be more friendly to PAM modules
+    like pam_mount or pam_systemd.
+  * Added support for PAM modules which change PAM_USER.
 
 *** translation
+  * Updated Brazilian Portuguese translation.
+  * Updated Catalan translation.
   * Updated Czech translation.
-  * Updated Vietnamese translation.
+  * Updated Danish translation.
+  * New Danish man pages translation.
+  * Updated French translation.
+  * Updated French man pages translation.
+  * Updated German translation.
+  * Updated German man pages translation.
+  * Updated Greek translation.
+  * Updated Italian man pages translation.
+  * Updated Japanese translation.
   * Updated Kazakh translation.
+  * Updated Norwegian Bokmål translation.
+  * Updated Portuguese translation.
+  * Updated Russian translation.
+  * Updated Simplified Chinese translation.
+  * Updated Simplified Chinese man pages translation.
+  * Updated Swedish translation.
+  * Updated Vietnamese translation.
+
+shadow-4.1.4.2 -> shadow-4.1.4.3						2011-02-15
+
+*** security
+- CVE-2011-0721: An insufficient input sanitation in chfn can be exploited
+  to create users or groups in a NIS environment.
 
 shadow-4.1.4.1 -> shadow-4.1.4.2					2009-07-24
 
@@ -354,7 +479,7 @@ shadow-4.1.0 -> shadow-4.1.1						02-04-2008
     faillog faster.
 - gpasswd
   * Fix failures when the gshadow file is not present.
-  * When a password is moved to the gshadow file, use "x" instead of "x"
+  * When a password is moved to the gshadow file, use "x" instead of "!"
     to indicate that the password is shadowed (consistency with grpconv).
   * Make sure the group and gshadow files are unlocked on exit.
 - groupadd

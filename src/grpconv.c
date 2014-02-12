@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2002 - 2006, Tomasz Kłoczko
+ * Copyright (c) 2011       , Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,7 @@
  */
 
 #include <config.h>
-#ident "$Id: grpconv.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: grpconv.c 3640 2011-11-19 21:51:52Z nekral-guest $"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -45,8 +46,11 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "nscd.h"
 #include "prototypes.h"
+/*@-exitarg@*/
+#include "exitcodes.h"
 #ifdef SHADOWGRP
 #include "groupio.h"
 #include "sgroupio.h"
@@ -60,6 +64,8 @@ static bool sgr_locked = false;
 
 /* local function prototypes */
 static void fail_exit (int status);
+static void usage (int status);
+static void process_flags (int argc, char **argv);
 
 static void fail_exit (int status)
 {
@@ -82,6 +88,55 @@ static void fail_exit (int status)
 	exit (status);
 }
 
+static void usage (int status)
+{
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
+}
+
+/*
+ * process_flags - parse the command line options
+ *
+ *	It will not return if an error is encountered.
+ */
+static void process_flags (int argc, char **argv)
+{
+	/*
+	 * Parse the command line options.
+	 */
+	int c;
+	static struct option long_options[] = {
+		{"help", no_argument,       NULL, 'h'},
+		{"root", required_argument, NULL, 'R'},
+		{NULL, 0, NULL, '\0'}
+	};
+
+	while ((c = getopt_long (argc, argv, "hR:",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
+		case 'h':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
+		case 'R': /* no-op, handled in process_root_flag () */
+			break;
+		default:
+			usage (E_USAGE);
+		}
+	}
+
+	if (optind != argc) {
+		usage (E_USAGE);
+	}
+}
+
 int main (int argc, char **argv)
 {
 	const struct group *gr;
@@ -89,16 +144,17 @@ int main (int argc, char **argv)
 	const struct sgrp *sg;
 	struct sgrp sgent;
 
-	if (1 != argc) {
-		(void) fputs (_("Usage: grpconv\n"), stderr);
-	}
 	Prog = Basename (argv[0]);
 
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	OPENLOG ("grpconv");
+
+	process_flags (argc, argv);
 
 	if (gr_lock () == 0) {
 		fprintf (stderr,
@@ -127,7 +183,7 @@ int main (int argc, char **argv)
 	/*
 	 * Remove /etc/gshadow entries for groups not in /etc/group.
 	 */
-	sgr_rewind ();
+	(void) sgr_rewind ();
 	while ((sg = sgr_next ()) != NULL) {
 		if (gr_locate (sg->sg_name) != NULL) {
 			continue;
@@ -148,7 +204,7 @@ int main (int argc, char **argv)
 	 * Update shadow group passwords if non-shadow password is not "x".
 	 * Add any missing shadow group entries.
 	 */
-	gr_rewind ();
+	(void) gr_rewind ();
 	while ((gr = gr_next ()) != NULL) {
 		sg = sgr_locate (gr->gr_name);
 		if (NULL != sg) {
@@ -209,13 +265,11 @@ int main (int argc, char **argv)
 		SYSLOG ((LOG_ERR, "failed to unlock %s", sgr_dbname ()));
 		/* continue */
 	}
-	sgr_locked = false;
 	if (gr_unlock () == 0) {
 		fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, gr_dbname ());
 		SYSLOG ((LOG_ERR, "failed to unlock %s", gr_dbname ()));
 		/* continue */
 	}
-	gr_locked = false;
 
 	nscd_flush_cache ("group");
 

@@ -2,7 +2,7 @@
  * Copyright (c) 1994       , Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2001 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2008, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,21 +32,26 @@
 
 #include <config.h>
 
-#ident "$Id: expiry.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: expiry.c 3640 2011-11-19 21:51:52Z nekral-guest $"
 
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <getopt.h>
 #include "defines.h"
 #include "prototypes.h"
+/*@-exitarg@*/
+#include "exitcodes.h"
 
 /* Global variables */
 const char *Prog;
+static bool cflg = false;
 
 /* local function prototypes */
-static RETSIGTYPE catch_signals (int);
-static void usage (void);
+static RETSIGTYPE catch_signals (unused int sig);
+static /*@noreturn@*/void usage (int status);
+static void process_flags (int argc, char **argv);
 
 /*
  * catch_signals - signal catcher
@@ -59,10 +64,72 @@ static RETSIGTYPE catch_signals (unused int sig)
 /*
  * usage - print syntax message and exit
  */
-static void usage (void)
+static /*@noreturn@*/void usage (int status)
 {
-	fputs (_("Usage: expiry {-f|-c}\n"), stderr);
-	exit (10);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -c, --check                   check the user's password expiration\n"), usageout);
+	(void) fputs (_("  -f, --force                   force password change if the user's password\n"
+	                "                                is expired\n"), usageout);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
+}
+
+/*
+ * process_flags - parse the command line options
+ *
+ *	It will not return if an error is encountered.
+ */
+static void process_flags (int argc, char **argv)
+{
+	bool fflg = false;
+	int c;
+	static struct option long_options[] = {
+		{"check", no_argument, NULL, 'c'},
+		{"force", no_argument, NULL, 'f'},
+		{"help",  no_argument, NULL, 'h'},
+		{NULL, 0, NULL, '\0'}
+	};
+
+	while ((c = getopt_long (argc, argv, "cfh",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
+		case 'c':
+			cflg = true;
+			break;
+		case 'f':
+			fflg = true;
+			break;
+		case 'h':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
+		default:
+			usage (E_USAGE);
+		}
+	}
+
+	if (! (cflg || fflg)) {
+		usage (E_USAGE);
+	}
+
+	if (cflg && fflg) {
+		fprintf (stderr,
+		         _("%s: options %s and %s conflict\n"),
+		         Prog, "-c", "-f");
+		usage (E_USAGE);
+	}
+
+	if (argc != optind) {
+		fprintf (stderr,
+		         _("%s: unexpected argument: %s\n"),
+		         Prog, argv[optind]);
+		usage (E_USAGE);
+	}
 }
 
 /* 
@@ -100,11 +167,7 @@ int main (int argc, char **argv)
 
 	OPENLOG ("expiry");
 
-	if (   (argc != 2)
-	    || (   (strcmp (argv[1], "-f") != 0)
-	        && (strcmp (argv[1], "-c") != 0))) {
-		usage ();
-	}
+	process_flags (argc, argv);
 
 	/*
 	 * Get user entries for /etc/passwd and /etc/shadow
@@ -122,8 +185,7 @@ int main (int argc, char **argv)
 	/*
 	 * If checking accounts, use agecheck() function.
 	 */
-	if (strcmp (argv[1], "-c") == 0) {
-
+	if (cflg) {
 		/*
 		 * Print out number of days until expiration.
 		 */
@@ -136,23 +198,13 @@ int main (int argc, char **argv)
 	}
 
 	/*
-	 * If forcing password change, use expire() function.
+	 * Otherwise, force a password change with the expire() function.
+	 * It will force the change or give a message indicating what to
+	 * do.
+	 * It won't return unless the account is unexpired.
 	 */
-	if (strcmp (argv[1], "-f") == 0) {
+	(void) expire (pwd, spwd);
 
-		/*
-		 * Just call expire(). It will force the change or give a
-		 * message indicating what to do. And it doesn't return at
-		 * all unless the account is unexpired.
-		 */
-		expire (pwd, spwd);
-		exit (0);
-	}
-
-	/*
-	 * Can't get here ...
-	 */
-	usage ();
-	exit (1);
+	return E_SUCCESS;
 }
 

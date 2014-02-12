@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2000 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2009, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: chage.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: chage.c 3642 2011-11-19 21:56:10Z nekral-guest $"
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -90,10 +90,8 @@ static long warndays;
 static long inactdays;
 static long expdate;
 
-#define	EPOCH		"1969-12-31"
-
 /* local function prototypes */
-static void usage (int status);
+static /*@noreturn@*/void usage (int status);
 static void date_to_str (char *buf, size_t maxsize, time_t date);
 static int new_fields (void);
 static void print_date (time_t date);
@@ -103,12 +101,12 @@ static void check_flags (int argc, int opt_index);
 static void check_perms (void);
 static void open_files (bool readonly);
 static void close_files (void);
-static void fail_exit (int code);
+static /*@noreturn@*/void fail_exit (int code);
 
 /*
  * fail_exit - do some cleanup and exit with the given error code
  */
-static void fail_exit (int code)
+static /*@noreturn@*/void fail_exit (int code)
 {
 	if (spw_locked) {
 		if (spw_unlock () == 0) {
@@ -140,23 +138,27 @@ static void fail_exit (int code)
 /*
  * usage - print command line syntax and exit
  */
-static void usage (int status)
+static /*@noreturn@*/void usage (int status)
 {
-	fputs (_("Usage: chage [options] [LOGIN]\n"
-	         "\n"
-	         "Options:\n"
-	         "  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n"
-	         "  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n"
-	         "  -h, --help                    display this help message and exit\n"
-	         "  -I, --inactive INACTIVE       set password inactive after expiration\n"
-	         "                                to INACTIVE\n"
-	         "  -l, --list                    show account aging information\n"
-	         "  -m, --mindays MIN_DAYS        set minimum number of days before password\n"
-	         "                                change to MIN_DAYS\n"
-	         "  -M, --maxdays MAX_DAYS        set maximim number of days before password\n"
-	         "                                change to MAX_DAYS\n"
-	         "  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n"
-	         "\n"), (E_SUCCESS != status) ? stderr : stdout);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options] LOGIN\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n"), usageout);
+	(void) fputs (_("  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n"), usageout);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -I, --inactive INACTIVE       set password inactive after expiration\n"
+	                "                                to INACTIVE\n"), usageout);
+	(void) fputs (_("  -l, --list                    show account aging information\n"), usageout);
+	(void) fputs (_("  -m, --mindays MIN_DAYS        set minimum number of days before password\n"
+	                "                                change to MIN_DAYS\n"), usageout);
+	(void) fputs (_("  -M, --maxdays MAX_DAYS        set maximim number of days before password\n"
+	                "                                change to MAX_DAYS\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs (_("  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n"), usageout);
+	(void) fputs ("\n", usageout);
 	exit (status);
 }
 
@@ -189,57 +191,65 @@ static int new_fields (void)
 	(void) puts (_("Enter the new value, or press ENTER for the default"));
 	(void) puts ("");
 
-	snprintf (buf, sizeof buf, "%ld", mindays);
+	(void) snprintf (buf, sizeof buf, "%ld", mindays);
 	change_field (buf, sizeof buf, _("Minimum Password Age"));
 	if (   (getlong (buf, &mindays) == 0)
 	    || (mindays < -1)) {
 		return 0;
 	}
 
-	snprintf (buf, sizeof buf, "%ld", maxdays);
+	(void) snprintf (buf, sizeof buf, "%ld", maxdays);
 	change_field (buf, sizeof buf, _("Maximum Password Age"));
 	if (   (getlong (buf, &maxdays) == 0)
 	    || (maxdays < -1)) {
 		return 0;
 	}
 
-	date_to_str (buf, sizeof buf, lstchgdate * SCALE);
+	if (-1 == lstchgdate) {
+		strcpy (buf, "-1");
+	} else {
+		date_to_str (buf, sizeof buf, (time_t) lstchgdate * SCALE);
+	}
 
 	change_field (buf, sizeof buf, _("Last Password Change (YYYY-MM-DD)"));
 
-	if (strcmp (buf, EPOCH) == 0) {
+	if (strcmp (buf, "-1") == 0) {
 		lstchgdate = -1;
 	} else {
 		lstchgdate = strtoday (buf);
-		if (lstchgdate < -1) {
+		if (lstchgdate <= -1) {
 			return 0;
 		}
 	}
 
-	snprintf (buf, sizeof buf, "%ld", warndays);
+	(void) snprintf (buf, sizeof buf, "%ld", warndays);
 	change_field (buf, sizeof buf, _("Password Expiration Warning"));
 	if (   (getlong (buf, &warndays) == 0)
 	    || (warndays < -1)) {
 		return 0;
 	}
 
-	snprintf (buf, sizeof buf, "%ld", inactdays);
+	(void) snprintf (buf, sizeof buf, "%ld", inactdays);
 	change_field (buf, sizeof buf, _("Password Inactive"));
 	if (   (getlong (buf, &inactdays) == 0)
 	    || (inactdays < -1)) {
 		return 0;
 	}
 
-	date_to_str (buf, sizeof buf, expdate * SCALE);
+	if (-1 == expdate) {
+		strcpy (buf, "-1");
+	} else {
+		date_to_str (buf, sizeof buf, (time_t) expdate * SCALE);
+	}
 
 	change_field (buf, sizeof buf,
 	              _("Account Expiration Date (YYYY-MM-DD)"));
 
-	if (strcmp (buf, EPOCH) == 0) {
+	if (strcmp (buf, "-1") == 0) {
 		expdate = -1;
 	} else {
 		expdate = strtoday (buf);
-		if (expdate < -1) {
+		if (expdate <= -1) {
 			return 0;
 		}
 	}
@@ -255,7 +265,7 @@ static void print_date (time_t date)
 
 	tp = gmtime (&date);
 	if (NULL == tp) {
-		(void) printf ("time_t: %lu\n", date);
+		(void) printf ("time_t: %lu\n", (unsigned long)date);
 	} else {
 		(void) strftime (buf, sizeof buf, "%b %d, %Y", tp);
 		(void) puts (buf);
@@ -374,23 +384,22 @@ static void process_flags (int argc, char **argv)
 	/*
 	 * Parse the command line options.
 	 */
-	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
-		{"lastday", required_argument, NULL, 'd'},
+		{"lastday",    required_argument, NULL, 'd'},
 		{"expiredate", required_argument, NULL, 'E'},
-		{"help", no_argument, NULL, 'h'},
-		{"inactive", required_argument, NULL, 'I'},
-		{"list", no_argument, NULL, 'l'},
-		{"mindays", required_argument, NULL, 'm'},
-		{"maxdays", required_argument, NULL, 'M'},
-		{"warndays", required_argument, NULL, 'W'},
+		{"help",       no_argument,       NULL, 'h'},
+		{"inactive",   required_argument, NULL, 'I'},
+		{"list",       no_argument,       NULL, 'l'},
+		{"mindays",    required_argument, NULL, 'm'},
+		{"maxdays",    required_argument, NULL, 'M'},
+		{"root",       required_argument, NULL, 'R'},
+		{"warndays",   required_argument, NULL, 'W'},
 		{NULL, 0, NULL, '\0'}
 	};
 
-	while ((c =
-		getopt_long (argc, argv, "d:E:hI:lm:M:W:", long_options,
-			     &option_index)) != -1) {
+	while ((c = getopt_long (argc, argv, "d:E:hI:lm:M:R:W:",
+	                         long_options, NULL)) != -1) {
 		switch (c) {
 		case 'd':
 			dflg = true;
@@ -414,7 +423,7 @@ static void process_flags (int argc, char **argv)
 			break;
 		case 'h':
 			usage (E_SUCCESS);
-			break;
+			/*@notreached@*/break;
 		case 'I':
 			Iflg = true;
 			if (   (getlong (optarg, &inactdays) == 0)
@@ -447,6 +456,8 @@ static void process_flags (int argc, char **argv)
 				         Prog, optarg);
 				usage (E_USAGE);
 			}
+			break;
+		case 'R': /* no-op, handled in process_root_flag () */
 			break;
 		case 'W':
 			Wflg = true;
@@ -545,13 +556,16 @@ static void check_perms (void)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		fail_exit (E_NOPERM);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 }
@@ -651,7 +665,8 @@ static void close_files (void)
  *
  *	It will not return in case of error
  */
-static void update_age (const struct spwd *sp, const struct passwd *pw)
+static void update_age (/*@null@*/const struct spwd *sp,
+                        /*@notnull@*/const struct passwd *pw)
 {
 	struct spwd spwent;
 
@@ -664,8 +679,8 @@ static void update_age (const struct spwd *sp, const struct passwd *pw)
 		struct passwd pwent = *pw;
 
 		memzero (&spwent, sizeof spwent);
-		spwent.sp_namp = xstrdup (pw->pw_name);
-		spwent.sp_pwdp = xstrdup (pw->pw_passwd);
+		spwent.sp_namp = xstrdup (pwent.pw_name);
+		spwent.sp_pwdp = xstrdup (pwent.pw_passwd);
 		spwent.sp_flag = SHADOW_SP_FLAG_UNSET;
 
 		pwent.pw_passwd = SHADOW_PASSWD_STRING;	/* XXX warning: const */
@@ -703,7 +718,7 @@ static void update_age (const struct spwd *sp, const struct passwd *pw)
 /*
  * get_defaults - get the value of the fields not set from the command line
  */
-static void get_defaults (const struct spwd *sp)
+static void get_defaults (/*@null@*/const struct spwd *sp)
 {
 	/*
 	 * Set the fields that aren't being set from the command line from
@@ -782,13 +797,22 @@ int main (int argc, char **argv)
 	gid_t rgid;
 	const struct passwd *pw;
 
-#ifdef WITH_AUDIT
-	audit_help_open ();
-#endif
+	/*
+	 * Get the program name so that error messages can use it.
+	 */
+	Prog = Basename (argv[0]);
+
 	sanitize_env ();
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
+
+	process_root_flag ("-R", argc, argv);
+
+#ifdef WITH_AUDIT
+	audit_help_open ();
+#endif
+	OPENLOG ("chage");
 
 	ruid = getuid ();
 	rgid = getgid ();
@@ -799,14 +823,7 @@ int main (int argc, char **argv)
 	}
 #endif
 
-	/*
-	 * Get the program name so that error messages can use it.
-	 */
-	Prog = Basename (argv[0]);
-
 	process_flags (argc, argv);
-
-	OPENLOG ("chage");
 
 	check_perms ();
 
@@ -833,7 +850,7 @@ int main (int argc, char **argv)
 		fprintf (stderr, _("%s: user '%s' does not exist in %s\n"),
 		         Prog, argv[optind], pw_dbname ());
 		closelog ();
-		exit (E_NOPERM);
+		fail_exit (E_NOPERM);
 	}
 
 	STRFCPY (user_name, pw->pw_name);

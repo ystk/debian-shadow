@@ -8,6 +8,9 @@ ifeq ($(DEB_HOST_ARCH_OS),hurd)
 override DEB_ARCH_PACKAGES=passwd
 endif
 
+# Enable PIE, BINDNOW, and possible future flags.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
 include /usr/share/cdbs/1/rules/debhelper.mk
 # Specify where dh_install will find the files that it needs to move:
 DEB_DH_INSTALL_SOURCEDIR=debian/tmp
@@ -31,18 +34,6 @@ endif
 
 # Automatically controls patching at build time:
 include /usr/share/cdbs/1/rules/patchsys-quilt.mk
-
-CFLAGS = -g -W -Wall
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-  CFLAGS += -O0
-else
-  CFLAGS += -O2
-endif
-export CFLAGS
-
-common-build-arch::
-	# Waiting for http://bugs.debian.org/507673
-	sed -i -f debian/man.insert.sed man/*.[0-9] man/*/*.[0-9]
 
 # Add extras to the install process:
 binary-install/login::

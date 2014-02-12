@@ -5,7 +5,7 @@
   Copyright (c) 1997       , Guy Maor <maor@ece.utexas.edu>
   Copyright (c) 1999 - 2000, Marek Michałkiewicz
   Copyright (c) 2002 - 2006, Tomasz Kłoczko
-  Copyright (c) 2007 - 2010, Nicolas François
+  Copyright (c) 2007 - 2011, Nicolas François
   All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 #include <config.h>
 
-#ident "$Id: vipw.c 3232 2010-08-22 19:13:53Z nekral-guest $"
+#ident "$Id: vipw.c 3654 2011-12-09 21:35:57Z nekral-guest $"
 
 #include <errno.h>
 #include <getopt.h>
@@ -61,7 +61,9 @@
 /*
  * Global variables
  */
-static const char *progname, *filename, *fileeditname;
+const char *Prog;
+
+static const char *filename, *fileeditname;
 static bool filelocked = false;
 static bool createedit = false;
 static int (*unlock) (void);
@@ -84,13 +86,16 @@ static void vipwedit (const char *, int (*)(void), int (*)(void));
 static void usage (int status)
 {
 	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
-	(void) fputs (_("Usage: vipw [options]\n"
-	                "\n"
-	                "Options:\n"), usageout);
+	(void) fprintf (stderr,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
 	(void) fputs (_("  -g, --group                   edit group database\n"), usageout);
 	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
 	(void) fputs (_("  -p, --passwd                  edit passwd database\n"), usageout);
 	(void) fputs (_("  -q, --quiet                   quiet mode\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
 	(void) fputs (_("  -s, --shadow                  edit shadow or gshadow database\n"), usageout);
 #ifdef WITH_TCB
 	(void) fputs (_("  -u, --user                    which user's tcb shadow file to edit\n"), usageout);
@@ -158,26 +163,26 @@ static void vipwexit (const char *msg, int syserr, int ret)
 
 	if (createedit) {
 		if (unlink (fileeditname) != 0) {
-			fprintf (stderr, _("%s: failed to remove %s\n"), progname, fileeditname);
+			fprintf (stderr, _("%s: failed to remove %s\n"), Prog, fileeditname);
 			/* continue */
 		}
 	}
 	if (filelocked) {
 		if ((*unlock) () == 0) {
-			fprintf (stderr, _("%s: failed to unlock %s\n"), progname, fileeditname);
+			fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, fileeditname);
 			SYSLOG ((LOG_ERR, "failed to unlock %s", fileeditname));
 			/* continue */
 		}
 	}
 	if (NULL != msg) {
-		fprintf (stderr, "%s: %s", progname, msg);
+		fprintf (stderr, "%s: %s", Prog, msg);
 	}
 	if (0 != syserr) {
 		fprintf (stderr, ": %s", strerror (err));
 	}
 	(void) fputs ("\n", stderr);
 	if (!quiet) {
-		fprintf (stdout, _("%s: %s is unchanged\n"), progname,
+		fprintf (stdout, _("%s: %s is unchanged\n"), Prog,
 			 filename);
 	}
 	exit (ret);
@@ -297,7 +302,7 @@ vipwedit (const char *file, int (*file_lock) (void), int (*file_unlock) (void))
 		snprintf (buf, strlen (editor) + strlen (fileedit) + 2,
 			  "%s %s", editor, fileedit);
 		if (system (buf) != 0) {
-			fprintf (stderr, "%s: %s: %s\n", progname, editor,
+			fprintf (stderr, "%s: %s: %s\n", Prog, editor,
 			         strerror (errno));
 			exit (1);
 		} else {
@@ -381,7 +386,7 @@ vipwedit (const char *file, int (*file_lock) (void), int (*file_unlock) (void))
 	if (rename (to_rename, file) == -1) {
 		fprintf (stderr,
 		         _("%s: can't restore %s: %s (your changes are in %s)\n"),
-		         progname, file, strerror (errno), to_rename);
+		         Prog, file, strerror (errno), to_rename);
 #ifdef WITH_TCB
 		if (tcb_mode) {
 			free (to_rename);
@@ -400,7 +405,7 @@ vipwedit (const char *file, int (*file_lock) (void), int (*file_unlock) (void))
 #endif				/* WITH_TCB */
 
 	if ((*file_unlock) () == 0) {
-		fprintf (stderr, _("%s: failed to unlock %s\n"), progname, fileeditname);
+		fprintf (stderr, _("%s: failed to unlock %s\n"), Prog, fileeditname);
 		SYSLOG ((LOG_ERR, "failed to unlock %s", fileeditname));
 		/* continue */
 	}
@@ -410,15 +415,17 @@ vipwedit (const char *file, int (*file_lock) (void), int (*file_unlock) (void))
 int main (int argc, char **argv)
 {
 	bool editshadow = false;
-	char *a;
 	bool do_vipw;
+
+	Prog = Basename (argv[0]);
 
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
-	progname = ((a = strrchr (*argv, '/')) ? a + 1 : *argv);
-	do_vipw = (strcmp (progname, "vigr") != 0);
+	process_root_flag ("-R", argc, argv);
+
+	do_vipw = (strcmp (Prog, "vigr") != 0);
 
 	OPENLOG (do_vipw ? "vipw" : "vigr");
 
@@ -428,21 +435,22 @@ int main (int argc, char **argv)
 		 */
 		int c;
 		static struct option long_options[] = {
-			{"group", no_argument, NULL, 'g'},
-			{"help", no_argument, NULL, 'h'},
-			{"passwd", no_argument, NULL, 'p'},
-			{"quiet", no_argument, NULL, 'q'},
-			{"shadow", no_argument, NULL, 's'},
+			{"group",  no_argument,       NULL, 'g'},
+			{"help",   no_argument,       NULL, 'h'},
+			{"passwd", no_argument,       NULL, 'p'},
+			{"quiet",  no_argument,       NULL, 'q'},
+			{"root",   required_argument, NULL, 'R'},
+			{"shadow", no_argument,       NULL, 's'},
 #ifdef WITH_TCB
-			{"user", required_argument, NULL, 'u'},
+			{"user",   required_argument, NULL, 'u'},
 #endif				/* WITH_TCB */
 			{NULL, 0, NULL, '\0'}
 		};
 		while ((c = getopt_long (argc, argv,
 #ifdef WITH_TCB
-		                         "ghpqsu:",
+		                         "ghpqR:su:",
 #else				/* !WITH_TCB */
-		                         "ghpqs",
+		                         "ghpqR:s",
 #endif				/* !WITH_TCB */
 		                         long_options, NULL)) != -1) {
 			switch (c) {
@@ -457,6 +465,8 @@ int main (int argc, char **argv)
 				break;
 			case 'q':
 				quiet = true;
+				break;
+			case 'R': /* no-op, handled in process_root_flag () */
 				break;
 			case 's':
 				editshadow = true;
@@ -479,7 +489,7 @@ int main (int argc, char **argv)
 				if (shadowtcb_set_user (user) == SHADOWTCB_FAILURE) {
 					fprintf (stderr,
 					         _("%s: failed to find tcb directory for %s\n"),
-					         progname, user);
+					         Prog, user);
 					return E_SHADOW_NOTFOUND;
 				}
 				tcb_mode = true;

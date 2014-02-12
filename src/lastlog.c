@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2000 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2009, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: lastlog.c 3059 2009-09-05 22:31:29Z nekral-guest $"
+#ident "$Id: lastlog.c 3560 2011-11-06 18:39:59Z nekral-guest $"
 
 #include <getopt.h>
 #include <lastlog.h>
@@ -44,6 +44,8 @@
 #include <assert.h>
 #include "defines.h"
 #include "prototypes.h"
+/*@-exitarg@*/
+#include "exitcodes.h"
 
 /*
  * Needed for MkLinux DR1/2/2.1 - J.
@@ -55,6 +57,7 @@
 /*
  * Global variables
  */
+const char *Prog;		/* Program name */
 static FILE *lastlogfile;	/* lastlog file stream */
 static unsigned long umin;	/* if uflg and has_umin, only display users with uid >= umin */
 static bool has_umin = false;
@@ -71,16 +74,20 @@ static bool bflg = false;	/* print excludes most recent days */
 
 #define	NOW	(time ((time_t *) 0))
 
-static void usage (int status)
+static /*@noreturn@*/void usage (int status)
 {
-	fputs (_("Usage: lastlog [options]\n"
-	         "\n"
-	         "Options:\n"
-	         "  -b, --before DAYS             print only lastlog records older than DAYS\n"
-	         "  -h, --help                    display this help message and exit\n"
-	         "  -t, --time DAYS               print only lastlog records more recent than DAYS\n"
-	         "  -u, --user LOGIN              print lastlog record of the specified LOGIN\n"
-	         "\n"), (EXIT_SUCCESS != status) ? stderr : stdout);
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -b, --before DAYS             print only lastlog records older than DAYS\n"), usageout);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs (_("  -t, --time DAYS               print only lastlog records more recent than DAYS\n"), usageout);
+	(void) fputs (_("  -u, --user LOGIN              print lastlog record of the specified LOGIN\n"), usageout);
+	(void) fputs ("\n", usageout);
 	exit (status);
 }
 
@@ -102,9 +109,8 @@ static void print_one (/*@null@*/const struct passwd *pw)
 	}
 
 
-	offset = pw->pw_uid * sizeof (ll);
-
-	if (offset <= (statbuf.st_size - sizeof (ll))) {
+	offset = (off_t) pw->pw_uid * sizeof (ll);
+	if (offset + sizeof (ll) <= statbuf.st_size) {
 		/* fseeko errors are not really relevant for us. */
 		int err = fseeko (lastlogfile, offset, SEEK_SET);
 		assert (0 == err);
@@ -114,8 +120,8 @@ static void print_one (/*@null@*/const struct passwd *pw)
 		 */
 		if (fread ((char *) &ll, sizeof (ll), 1, lastlogfile) != 1) {
 			fprintf (stderr,
-			         _("lastlog: Failed to get the entry for UID %lu\n"),
-			         (unsigned long int)pw->pw_uid);
+			         _("%s: Failed to get the entry for UID %lu\n"),
+			         Prog, (unsigned long int)pw->pw_uid);
 			exit (EXIT_FAILURE);
 		}
 	} else {
@@ -190,25 +196,49 @@ static void print (void)
 
 int main (int argc, char **argv)
 {
+	/*
+	 * Get the program name. The program name is used as a prefix to
+	 * most error messages.
+	 */
+	Prog = Basename (argv[0]);
+
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	{
 		int c;
 		static struct option const longopts[] = {
-			{"help", no_argument, NULL, 'h'},
-			{"time", required_argument, NULL, 't'},
 			{"before", required_argument, NULL, 'b'},
-			{"user", required_argument, NULL, 'u'},
+			{"help",   no_argument,       NULL, 'h'},
+			{"root",   required_argument, NULL, 'R'},
+			{"time",   required_argument, NULL, 't'},
+			{"user",   required_argument, NULL, 'u'},
 			{NULL, 0, NULL, '\0'}
 		};
 
-		while ((c = getopt_long (argc, argv, "ht:b:u:", longopts,
+		while ((c = getopt_long (argc, argv, "b:hR:t:u:", longopts,
 		                         NULL)) != -1) {
 			switch (c) {
+			case 'b':
+			{
+				unsigned long inverse_days;
+				if (getulong (optarg, &inverse_days) == 0) {
+					fprintf (stderr,
+					         _("%s: invalid numeric argument '%s'\n"),
+					         Prog, optarg);
+					exit (EXIT_FAILURE);
+				}
+				inverse_seconds = (time_t) inverse_days * DAY;
+				bflg = true;
+				break;
+			}
 			case 'h':
 				usage (EXIT_SUCCESS);
+				/*@notreached@*/break;
+			case 'R': /* no-op, handled in process_root_flag () */
 				break;
 			case 't':
 			{
@@ -216,24 +246,11 @@ int main (int argc, char **argv)
 				if (getulong (optarg, &days) == 0) {
 					fprintf (stderr,
 					         _("%s: invalid numeric argument '%s'\n"),
-					         "lastlog", optarg);
+					         Prog, optarg);
 					exit (EXIT_FAILURE);
 				}
 				seconds = (time_t) days * DAY;
 				tflg = true;
-				break;
-			}
-			case 'b':
-			{
-				unsigned long inverse_days;
-				if (getulong (optarg, &inverse_days) == 0) {
-					fprintf (stderr,
-					         _("%s: invalid numeric argument '%s'\n"),
-					         "lastlog", optarg);
-					exit (EXIT_FAILURE);
-				}
-				inverse_seconds = (time_t) inverse_days * DAY;
-				bflg = true;
 				break;
 			}
 			case 'u':
@@ -259,8 +276,8 @@ int main (int argc, char **argv)
 					              &umin, &has_umin,
 					              &umax, &has_umax) == 0) {
 						fprintf (stderr,
-						         _("lastlog: Unknown user or range: %s\n"),
-						         optarg);
+						         _("%s: Unknown user or range: %s\n"),
+						         Prog, optarg);
 						exit (EXIT_FAILURE);
 					}
 				}
@@ -268,13 +285,13 @@ int main (int argc, char **argv)
 			}
 			default:
 				usage (EXIT_FAILURE);
-				break;
+				/*@notreached@*/break;
 			}
 		}
 		if (argc > optind) {
 			fprintf (stderr,
-			         _("lastlog: unexpected argument: %s\n"),
-			         argv[optind]);
+			         _("%s: unexpected argument: %s\n"),
+			         Prog, argv[optind]);
 			usage (EXIT_FAILURE);
 		}
 	}
@@ -288,8 +305,8 @@ int main (int argc, char **argv)
 	/* Get the lastlog size */
 	if (fstat (fileno (lastlogfile), &statbuf) != 0) {
 		fprintf (stderr,
-		         _("lastlog: Cannot get the size of %s: %s\n"),
-		         LASTLOG_FILE, strerror (errno));
+		         _("%s: Cannot get the size of %s: %s\n"),
+		         Prog, LASTLOG_FILE, strerror (errno));
 		exit (EXIT_FAILURE);
 	}
 

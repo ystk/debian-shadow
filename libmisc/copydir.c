@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: copydir.c 3283 2010-09-05 15:34:42Z nekral-guest $"
+#ident "$Id: copydir.c 3706 2012-02-13 19:16:29Z nekral-guest $"
 
 #include <assert.h>
 #include <sys/stat.h>
@@ -46,6 +46,7 @@
 #include <selinux/selinux.h>
 #endif				/* WITH_SELINUX */
 #if defined(WITH_ACL) || defined(WITH_ATTR)
+#include <stdarg.h>
 #include <attr/error_context.h>
 #endif				/* WITH_ACL || WITH_ATTR */
 #ifdef WITH_ACL
@@ -55,10 +56,6 @@
 #include <attr/libattr.h>
 #endif				/* WITH_ATTR */
 
-#ifdef WITH_SELINUX
-static bool selinux_checked = false;
-static bool selinux_enabled;
-#endif				/* WITH_SELINUX */
 
 static /*@null@*/const char *src_orig;
 static /*@null@*/const char *dst_orig;
@@ -112,73 +109,20 @@ static int fchown_if_needed (int fdst, const struct stat *statp,
                              uid_t old_uid, uid_t new_uid,
                              gid_t old_gid, gid_t new_gid);
 
-#ifdef WITH_SELINUX
-/*
- * set_selinux_file_context - Set the security context before any file or
- *                            directory creation.
- *
- *	set_selinux_file_context () should be called before any creation
- *	of file, symlink, directory, ...
- *
- *	Callers may have to Reset SELinux to create files with default
- *	contexts with reset_selinux_file_context
- */
-int set_selinux_file_context (const char *dst_name)
-{
-	/*@null@*/security_context_t scontext = NULL;
-
-	if (!selinux_checked) {
-		selinux_enabled = is_selinux_enabled () > 0;
-		selinux_checked = true;
-	}
-
-	if (selinux_enabled) {
-		/* Get the default security context for this file */
-		if (matchpathcon (dst_name, 0, &scontext) < 0) {
-			if (security_getenforce () != 0) {
-				return 1;
-			}
-		}
-		/* Set the security context for the next created file */
-		if (setfscreatecon (scontext) < 0) {
-			if (security_getenforce () != 0) {
-				return 1;
-			}
-		}
-		freecon (scontext);
-	}
-	return 0;
-}
-
-/*
- * reset_selinux_file_context - Reset the security context to the default
- *                              policy behavior
- *
- *	reset_selinux_file_context () should be called after the context
- *	was changed with set_selinux_file_context ()
- */
-int reset_selinux_file_context (void)
-{
-	if (!selinux_checked) {
-		selinux_enabled = is_selinux_enabled () > 0;
-		selinux_checked = true;
-	}
-	if (selinux_enabled) {
-		if (setfscreatecon (NULL) != 0) {
-			return 1;
-		}
-	}
-	return 0;
-}
-#endif				/* WITH_SELINUX */
-
 #if defined(WITH_ACL) || defined(WITH_ATTR)
 /*
- * error - format the error messages for the ACL and EQ libraries.
+ * error_acl - format the error messages for the ACL and EQ libraries.
  */
-static void error (struct error_context *ctx, const char *fmt, ...)
+static void error_acl (struct error_context *ctx, const char *fmt, ...)
 {
 	va_list ap;
+
+	/* ignore the case when destination does not support ACLs 
+	 * or extended attributes */
+	if (ENOTSUP == errno) {
+		errno = 0;
+		return;
+	}
 
 	va_start (ap, fmt);
 	(void) fprintf (stderr, _("%s: "), Prog);
@@ -190,7 +134,7 @@ static void error (struct error_context *ctx, const char *fmt, ...)
 }
 
 static struct error_context ctx = {
-	error
+	error_acl
 };
 #endif				/* WITH_ACL || WITH_ATTR */
 
@@ -548,7 +492,8 @@ static int copy_dir (const char *src, const char *dst,
 	    || (chown_if_needed (dst, statp,
 	                         old_uid, new_uid, old_gid, new_gid) != 0)
 #ifdef WITH_ACL
-	    || (perm_copy_file (src, dst, &ctx) != 0)
+	    || (   (perm_copy_file (src, dst, &ctx) != 0)
+	        && (errno != 0))
 #else				/* !WITH_ACL */
 	    || (chmod (dst, statp->st_mode) != 0)
 #endif				/* !WITH_ACL */
@@ -560,7 +505,9 @@ static int copy_dir (const char *src, const char *dst,
 	 * file systems with and without ACL support needs some
 	 * additional logic so that no unexpected permissions result.
 	 */
-	    || (!reset_selinux && (attr_copy_file (src, dst, NULL, &ctx) != 0))
+	    || (   !reset_selinux
+	        && (attr_copy_file (src, dst, NULL, &ctx) != 0)
+	        && (errno != 0))
 #endif				/* WITH_ATTR */
 	    || (copy_tree (src, dst, false, reset_selinux,
 	                   old_uid, new_uid, old_gid, new_gid) != 0)
@@ -746,7 +693,8 @@ static int copy_special (const char *src, const char *dst,
 	    || (chown_if_needed (dst, statp,
 	                         old_uid, new_uid, old_gid, new_gid) != 0)
 #ifdef WITH_ACL
-	    || (perm_copy_file (src, dst, &ctx) != 0)
+	    || (   (perm_copy_file (src, dst, &ctx) != 0)
+	        && (errno != 0))
 #else				/* !WITH_ACL */
 	    || (chmod (dst, statp->st_mode & 07777) != 0)
 #endif				/* !WITH_ACL */
@@ -758,7 +706,9 @@ static int copy_special (const char *src, const char *dst,
 	 * file systems with and without ACL support needs some
 	 * additional logic so that no unexpected permissions result.
 	 */
-	    || (!reset_selinux && (attr_copy_file (src, dst, NULL, &ctx) != 0))
+	    || (   !reset_selinux
+	        && (attr_copy_file (src, dst, NULL, &ctx) != 0)
+	        && (errno != 0))
 #endif				/* WITH_ATTR */
 	    || (utimes (dst, mt) != 0)) {
 		err = -1;
@@ -803,7 +753,8 @@ static int copy_file (const char *src, const char *dst,
 	    || (fchown_if_needed (ofd, statp,
 	                          old_uid, new_uid, old_gid, new_gid) != 0)
 #ifdef WITH_ACL
-	    || (perm_copy_fd (src, ifd, dst, ofd, &ctx) != 0)
+	    || (   (perm_copy_fd (src, ifd, dst, ofd, &ctx) != 0)
+	        && (errno != 0))
 #else				/* !WITH_ACL */
 	    || (fchmod (ofd, statp->st_mode & 07777) != 0)
 #endif				/* !WITH_ACL */
@@ -815,7 +766,9 @@ static int copy_file (const char *src, const char *dst,
 	 * file systems with and without ACL support needs some
 	 * additional logic so that no unexpected permissions result.
 	 */
-	    || (!reset_selinux && (attr_copy_fd (src, ifd, dst, ofd, NULL, &ctx) != 0))
+	    || (   !reset_selinux
+	        && (attr_copy_fd (src, ifd, dst, ofd, NULL, &ctx) != 0)
+	        && (errno != 0))
 #endif				/* WITH_ATTR */
 	   ) {
 		(void) close (ifd);

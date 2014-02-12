@@ -2,6 +2,7 @@
 
 lib/commonio.c
 lib/encrypt.c
+lib/fields.c
 lib/fputsx.c
 lib/getdef.c
 lib/get_gid.c
@@ -16,6 +17,8 @@ lib/port.c
 lib/pwauth.c
 lib/pwio.c
 lib/pwmem.c
+lib/selinux.c
+lib/semanage.c
 lib/sgetgrent.c
 lib/sgetpwent.c
 lib/sgetspent.c
@@ -23,6 +26,7 @@ lib/sgroupio.c
 lib/shadow.c
 lib/shadowio.c
 lib/shadowmem.c
+lib/spawn.c
 lib/tcbfuncs.c
 lib/utent.c
 libmisc/addgrps.c
@@ -40,7 +44,6 @@ libmisc/copydir.c
 libmisc/entry.c
 libmisc/env.c
 libmisc/failure.c
-libmisc/fields.c
 libmisc/find_new_gid.c
 libmisc/find_new_uid.c
 libmisc/getgr_nam_gid.c
@@ -61,6 +64,7 @@ libmisc/pwdcheck.c
 libmisc/pwd_init.c
 libmisc/remove_tree.c
 libmisc/rlogin.c
+libmisc/root_flag.c
 libmisc/salt.c
 libmisc/setugid.c
 libmisc/setupenv.c

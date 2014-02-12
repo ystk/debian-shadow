@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991 - 1994, Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -42,14 +42,36 @@
 <!ENTITY SYS_UID_MAX           SYSTEM "login.defs.d/SYS_UID_MAX.xml">
 <!ENTITY UID_MAX               SYSTEM "login.defs.d/UID_MAX.xml">
 <!ENTITY UMASK                 SYSTEM "login.defs.d/UMASK.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 
 <refentry id='newusers.8'>
-  <!-- $Id: newusers.8.xml 3210 2010-04-04 23:17:11Z nekral-guest $ -->
+  <!-- $Id: newusers.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $ -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>newusers</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>newusers</refname>
@@ -61,7 +83,9 @@
       <command>newusers</command>
       <arg choice='opt'>
 	<replaceable>options</replaceable>
-	<replaceable>new_users</replaceable>
+      </arg>
+      <arg choice='opt'>
+	<replaceable>file</replaceable>
       </arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -69,8 +93,8 @@
   <refsect1 id='description'>
     <title>DESCRIPTION</title>
     <para>
-      The <command>newusers</command> command reads a file of user name and
-      clear-text password pairs and uses this information to update a group
+      The <command>newusers</command> command reads a <replaceable>file</replaceable> (or the standard input by default)
+      and uses this information to update a set
       of existing users or to create new users. Each line is in the same format
       as the standard password file (see
       <citerefentry><refentrytitle>passwd</refentrytitle><manvolnum>5</manvolnum>
@@ -163,11 +187,11 @@
 	  </para>
 	  <para>
 	    If this field contains the name of a group which does not
-	    exist (and was not created earlier wbefore by
+	    exist (and was not created before by
 	    <command>newusers</command>), a new group will be created with
 	    the specified name and a GID will be automatically defined by
 	    <command>newusers</command> to be used as the primary group ID
-	    for the user and Gs the ID for the new group.
+	    for the user and GID for the new group.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -275,6 +299,19 @@
 	    range, defined in <filename>login.defs</filename>, instead of
 	    <option>UID_MIN</option>-<option>UID_MAX</option> (and their
 	    <option>GID</option> counterparts for the creation of groups).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
 	  </para>
 	</listitem>
       </varlistentry>

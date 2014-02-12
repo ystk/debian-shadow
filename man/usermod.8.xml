@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
    Copyright (c) 1991 - 1994, Julianne Frances Haugh
-   Copyright (c) 2007 - 2009, Nicolas François
+   Copyright (c) 2007 - 2011, Nicolas François
    All rights reserved.
   
    Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,35 @@
 <!ENTITY MAX_MEMBERS_PER_GROUP SYSTEM "login.defs.d/MAX_MEMBERS_PER_GROUP.xml">
 <!ENTITY TCB_SYMLINKS          SYSTEM "login.defs.d/TCB_SYMLINKS.xml">
 <!ENTITY USE_TCB               SYSTEM "login.defs.d/USE_TCB.xml">
+<!-- SHADOW-CONFIG-HERE -->
 ]>
 <refentry id='usermod.8'>
-  <!--  $Id: usermod.8.xml 3207 2010-04-04 21:23:02Z nekral-guest $  -->
+  <!--  $Id: usermod.8.xml 3742 2012-05-25 11:45:21Z nekral-guest $  -->
+  <refentryinfo>
+    <author>
+      <firstname>Julianne Frances</firstname>
+      <surname>Haugh</surname>
+      <contrib>Creation, 1991</contrib>
+    </author>
+    <author>
+      <firstname>Thomas</firstname>
+      <surname>Kłoczko</surname>
+      <email>kloczek@pld.org.pl</email>
+      <contrib>shadow-utils maintainer, 2000 - 2007</contrib>
+    </author>
+    <author>
+      <firstname>Nicolas</firstname>
+      <surname>François</surname>
+      <email>nicolas.francois@centraliens.net</email>
+      <contrib>shadow-utils maintainer, 2007 - now</contrib>
+    </author>
+  </refentryinfo>
   <refmeta>
     <refentrytitle>usermod</refentrytitle>
     <manvolnum>8</manvolnum>
     <refmiscinfo class="sectdesc">System Management Commands</refmiscinfo>
+    <refmiscinfo class="source">shadow-utils</refmiscinfo>
+    <refmiscinfo class="version">&SHADOW_UTILS_VERSION;</refmiscinfo>
   </refmeta>
   <refnamediv id='name'>
     <refname>usermod</refname>
@@ -124,6 +146,15 @@
 	    The date on which the user account will be disabled. The date is
 	    specified in the format <emphasis remap='I'>YYYY-MM-DD</emphasis>.
 	  </para>
+	  <para>
+	    An empty <replaceable>EXPIRE_DATE</replaceable> argument will
+	    disable the expiration of the account.
+	  </para>
+	  <para>
+	    This option requires a <filename>/etc/shadow</filename> file.
+	    A <filename>/etc/shadow</filename> entry will be created if
+	    there were none.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -140,6 +171,11 @@
 	    A value of 0 disables the account as soon
 	    as the password has expired, and a value of -1 disables the
 	    feature.
+	  </para>
+	  <para>
+	    This option requires a <filename>/etc/shadow</filename> file.
+	    A <filename>/etc/shadow</filename> entry will be created if
+	    there were none.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -194,8 +230,8 @@
 	    The name of the user will be changed from
 	    <replaceable>LOGIN</replaceable> to
 	    <replaceable>NEW_LOGIN</replaceable>. Nothing else is changed. In
-	    particular, the user's home directory name should probably be
-	    changed manually to reflect the new login name.
+	    particular, the user's home directory or mail spool should
+	    probably be renamed manually to reflect the new login name.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -279,6 +315,19 @@
       </varlistentry>
       <varlistentry>
 	<term>
+	  <option>-R</option>, <option>--root</option>
+	  <replaceable>CHROOT_DIR</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    Apply changes in the <replaceable>CHROOT_DIR</replaceable>
+	    directory and use the configuration files from the
+	    <replaceable>CHROOT_DIR</replaceable> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
 	  <option>-s</option>, <option>--shell</option>
 	  <replaceable>SHELL</replaceable>
 	</term>
@@ -301,8 +350,7 @@
 	  <para>
 	    This value must be unique,
 	    unless the <option>-o</option> option is used. The value must be
-	    non-negative. Values between 0 and 999 are typically reserved
-	    for system accounts.
+	    non-negative.
 	  </para>
 	  <para>
 	    The user's mailbox, and any files which the user owns and which are
@@ -312,6 +360,12 @@
 	  <para>
 	    The ownership of files outside of the user's home directory
 	    must be fixed manually.
+	  </para>
+	  <para>
+	    No checks will be performed with regard to the
+	    <option>UID_MIN</option>, <option>UID_MAX</option>,
+	    <option>SYS_UID_MIN</option>, or <option>SYS_UID_MAX</option>
+	    from <filename>/etc/login.defs</filename>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -335,19 +389,22 @@
 	  </para>
 	</listitem>
       </varlistentry>
-	<varlistentry>
-	  <term>
-	    <option>-Z</option>, <option>--selinux-user</option>
-	    <replaceable>SEUSER</replaceable>
-	  </term>
-	  <listitem>
-	    <para>
-	      The SELinux user for the user's login. The default is to leave
-	      this field the blank, which causes the system to select the
-	      default SELinux user.
-	    </para>
-	  </listitem>
-	</varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-Z</option>, <option>--selinux-user</option>
+	  <replaceable>SEUSER</replaceable>
+	</term>
+	<listitem>
+	  <para>
+	    The new SELinux user for the user's login.
+	  </para>
+	  <para>
+	    A blank <replaceable>SEUSER</replaceable> will remove the
+	    SELinux user mapping for user <replaceable>LOGIN</replaceable>
+	    (if any).
+	  </para>
+	</listitem>
+      </varlistentry>
     </variablelist>
   </refsect1>
 
@@ -398,6 +455,12 @@
 	<term><filename>/etc/gshadow</filename></term>
 	<listitem>
 	  <para>Secure group account information.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><filename>/etc/login.defs</filename></term>
+	<listitem>
+	  <para>Shadow password suite configuration.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>

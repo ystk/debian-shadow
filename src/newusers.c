@@ -2,7 +2,7 @@
  * Copyright (c) 1990 - 1993, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2000 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2009, Nicolas François
+ * Copyright (c) 2007 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@
 
 #include <config.h>
 
-#ident "$Id: newusers.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: newusers.c 3652 2011-12-09 21:31:39Z nekral-guest $"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -74,8 +74,8 @@ const char *Prog;
 
 static bool rflg = false;	/* create a system account */
 #ifndef USE_PAM
-static bool cflg = false;
-static char *crypt_method = NULL;
+static /*@null@*//*@observer@*/char *crypt_method = NULL;
+#define cflg (NULL != crypt_method)
 #ifdef USE_SHA_CRYPT
 static bool sflg = false;
 static long sha_rounds = 5000;
@@ -120,7 +120,7 @@ static void usage (int status)
 	                Prog);
 #ifndef USE_PAM
 	(void) fprintf (usageout,
-	                _("  -c, --crypt-method            the crypt method (one of %s)\n"),
+	                _("  -c, --crypt-method METHOD     the crypt method (one of %s)\n"),
 #ifndef USE_SHA_CRYPT
 	                "NONE DES MD5"
 #else				/* USE_SHA_CRYPT */
@@ -130,6 +130,7 @@ static void usage (int status)
 #endif				/* !USE_PAM */
 	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
 	(void) fputs (_("  -r, --system                  create system accounts\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
 #ifndef USE_PAM
 #ifdef USE_SHA_CRYPT
 	(void) fputs (_("  -s, --sha-rounds              number of SHA rounds for the SHA*\n"
@@ -268,7 +269,7 @@ static int add_group (const char *name, const char *gid, gid_t *ngid, uid_t uid)
 		return -1;
 	}
 
-	grent.gr_passwd = "x";	/* XXX warning: const */
+	grent.gr_passwd = "*";	/* XXX warning: const */
 	members[0] = NULL;
 	grent.gr_mem = members;
 
@@ -287,16 +288,13 @@ static int add_group (const char *name, const char *gid, gid_t *ngid, uid_t uid)
 	}
 #endif
 
-	if (gr_update (&grent) == 0) {
-		return -1;
-	}
-
 #ifdef SHADOWGRP
 	if (is_shadow_grp) {
 		struct sgrp sgrent;
 		char *admins[1];
 		sgrent.sg_name = grent.gr_name;
 		sgrent.sg_passwd = "*";	/* XXX warning: const */
+		grent.gr_passwd  = "x";	/* XXX warning: const */
 		admins[0] = NULL;
 		sgrent.sg_adm = admins;
 		sgrent.sg_mem = members;
@@ -306,6 +304,10 @@ static int add_group (const char *name, const char *gid, gid_t *ngid, uid_t uid)
 		}
 	}
 #endif
+
+	if (gr_update (&grent) == 0) {
+		return -1;
+	}
 
 	return 0;
 }
@@ -522,17 +524,19 @@ static int add_passwd (struct passwd *pwd, const char *password)
  */
 static void process_flags (int argc, char **argv)
 {
-	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
 #ifndef USE_PAM
 		{"crypt-method", required_argument, NULL, 'c'},
+#endif				/* !USE_PAM */
+		{"help",         no_argument,       NULL, 'h'},
+		{"system",       no_argument,       NULL, 'r'},
+		{"root",         required_argument, NULL, 'R'},
+#ifndef USE_PAM
 #ifdef USE_SHA_CRYPT
-		{"sha-rounds", required_argument, NULL, 's'},
+		{"sha-rounds",   required_argument, NULL, 's'},
 #endif				/* USE_SHA_CRYPT */
 #endif				/* !USE_PAM */
-		{"help", no_argument, NULL, 'h'},
-		{"system", no_argument, NULL, 'r'},
 		{NULL, 0, NULL, '\0'}
 	};
 
@@ -546,19 +550,22 @@ static void process_flags (int argc, char **argv)
 #else				/* USE_PAM */
 	                         "hr",
 #endif
-	                     long_options, &option_index)) != -1) {
+	                         long_options, NULL)) != -1) {
 		switch (c) {
+#ifndef USE_PAM
+		case 'c':
+			crypt_method = optarg;
+			break;
+#endif				/* !USE_PAM */
 		case 'h':
 			usage (EXIT_SUCCESS);
 			break;
 		case 'r':
 			rflg = true;
 			break;
-#ifndef USE_PAM
-		case 'c':
-			cflg = true;
-			crypt_method = optarg;
+		case 'R': /* no-op, handled in process_root_flag () */
 			break;
+#ifndef USE_PAM
 #ifdef USE_SHA_CRYPT
 		case 's':
 			sflg = true;
@@ -575,6 +582,11 @@ static void process_flags (int argc, char **argv)
 			usage (EXIT_FAILURE);
 			break;
 		}
+	}
+
+	if (   (optind != argc)
+	    && (optind + 1 != argc)) {
+		usage (EXIT_FAILURE);
 	}
 
 	if (argv[optind] != NULL) {
@@ -661,13 +673,16 @@ static void check_perms (void)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		fail_exit (EXIT_FAILURE);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 }
@@ -835,6 +850,9 @@ int main (int argc, char **argv)
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	/* FIXME: will not work with an input file */
+	process_root_flag ("-R", argc, argv);
+
 	OPENLOG ("newusers");
 
 	process_flags (argc, argv);
@@ -891,6 +909,7 @@ int main (int argc, char **argv)
 		if (nfields != 6) {
 			fprintf (stderr, _("%s: line %d: invalid line\n"),
 			         Prog, line);
+			errors++;
 			continue;
 		}
 
@@ -995,7 +1014,7 @@ int main (int argc, char **argv)
 			newpw.pw_shell = fields[6];
 		}
 
-		if (   ('\0' != newpw.pw_dir[0])
+		if (   ('\0' != fields[5][0])
 		    && (access (newpw.pw_dir, F_OK) != 0)) {
 /* FIXME: should check for directory */
 			mode_t msk = 0777 & ~getdef_num ("UMASK",

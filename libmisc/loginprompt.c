@@ -2,7 +2,7 @@
  * Copyright (c) 1989 - 1993, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2003 - 2005, Tomasz Kłoczko
- * Copyright (c) 2008 - 2010, Nicolas François
+ * Copyright (c) 2008 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: loginprompt.c 3232 2010-08-22 19:13:53Z nekral-guest $"
+#ident "$Id: loginprompt.c 3490 2011-09-18 20:41:38Z nekral-guest $"
 
 #include <assert.h>
 #include <stdio.h>
@@ -158,10 +158,9 @@ void login_prompt (const char *prompt, char *name, int namesize)
 				envp[envc] = nvar;
 			} else {
 				size_t len = strlen (nvar) + 32;
-				int wlen;
 				envp[envc] = xmalloc (len);
-				wlen = snprintf (envp[envc], len, "L%d=%s", count++, nvar);
-				assert (wlen == (int) len -1);
+				(void) snprintf (envp[envc], len,
+				                 "L%d=%s", count++, nvar);
 			}
 		}
 		set_env (envc, envp);

@@ -2,7 +2,7 @@
  * Copyright (c) 1996       , Michael Meskes
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2002 - 2006, Tomasz Kłoczko
- * Copyright (c) 2008       , Nicolas François
+ * Copyright (c) 2008 - 2011, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 
 #include <config.h>
 
-#ident "$Id: grpunconv.c 3233 2010-08-22 19:36:09Z nekral-guest $"
+#ident "$Id: grpunconv.c 3726 2012-05-18 19:32:32Z nekral-guest $"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +46,11 @@
 #include <time.h>
 #include <unistd.h>
 #include <grp.h>
+#include <getopt.h>
 #include "nscd.h"
 #include "prototypes.h"
+/*@-exitarg@*/
+#include "exitcodes.h"
 #ifdef SHADOWGRP
 #include "groupio.h"
 #include "sgroupio.h"
@@ -61,6 +64,8 @@ static bool sgr_locked = false;
 
 /* local function prototypes */
 static void fail_exit (int status);
+static void usage (int status);
+static void process_flags (int argc, char **argv);
 
 static void fail_exit (int status)
 {
@@ -83,22 +88,72 @@ static void fail_exit (int status)
 	exit (status);
 }
 
+static void usage (int status)
+{
+	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
+	(void) fprintf (usageout,
+	                _("Usage: %s [options]\n"
+	                  "\n"
+	                  "Options:\n"),
+	                Prog);
+	(void) fputs (_("  -h, --help                    display this help message and exit\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
+	(void) fputs ("\n", usageout);
+	exit (status);
+}
+
+/*
+ * process_flags - parse the command line options
+ *
+ *	It will not return if an error is encountered.
+ */
+static void process_flags (int argc, char **argv)
+{
+	/*
+	 * Parse the command line options.
+	 */
+	int c;
+	static struct option long_options[] = {
+		{"help", no_argument,       NULL, 'h'},
+		{"root", required_argument, NULL, 'R'},
+		{NULL, 0, NULL, '\0'}
+	};
+
+	while ((c = getopt_long (argc, argv, "hR:",
+	                         long_options, NULL)) != -1) {
+		switch (c) {
+		case 'h':
+			usage (E_SUCCESS);
+			/*@notreached@*/break;
+		case 'R': /* no-op, handled in process_root_flag () */
+			break;
+		default:
+			usage (E_USAGE);
+		}
+	}
+
+	if (optind != argc) {
+		usage (E_USAGE);
+	}
+}
+
 int main (int argc, char **argv)
 {
 	const struct group *gr;
 	struct group grent;
 	const struct sgrp *sg;
 
-	if (1 != argc) {
-		(void) fputs (_("Usage: grpunconv\n"), stderr);
-	}
 	Prog = Basename (argv[0]);
 
 	(void) setlocale (LC_ALL, "");
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	OPENLOG ("grpunconv");
+
+	process_flags (argc, argv);
 
 	if (sgr_file_present () == 0) {
 		exit (0);	/* no /etc/gshadow, nothing to do */
@@ -124,7 +179,7 @@ int main (int argc, char **argv)
 		fail_exit (5);
 	}
 	sgr_locked = true;
-	if (sgr_open (O_RDWR) == 0) {
+	if (sgr_open (O_RDONLY) == 0) {
 		fprintf (stderr,
 		         _("%s: cannot open %s\n"), Prog, sgr_dbname ());
 		fail_exit (1);
@@ -133,7 +188,7 @@ int main (int argc, char **argv)
 	/*
 	 * Update group passwords if non-shadow password is "x".
 	 */
-	gr_rewind ();
+	(void) gr_rewind ();
 	while ((gr = gr_next ()) != NULL) {
 		sg = sgr_locate (gr->gr_name);
 		if (   (NULL != sg)
@@ -150,13 +205,7 @@ int main (int argc, char **argv)
 		}
 	}
 
-	if (sgr_close () == 0) {
-		fprintf (stderr,
-		         _("%s: failure while writing changes to %s\n"),
-		         Prog, sgr_dbname ());
-		SYSLOG ((LOG_ERR, "failure while writing changes to %s", sgr_dbname ()));
-		fail_exit (3);
-	}
+	(void) sgr_close (); /* was only open O_RDONLY */
 
 	if (gr_close () == 0) {
 		fprintf (stderr,

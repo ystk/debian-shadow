@@ -2594,13 +2594,13 @@ static long difftm (struct tm *a, struct tm *b)
 	  + (a->tm_sec - b->tm_sec));
 }
 
-time_t get_date (const char *p, /*@null@*/const time_t *now)
+time_t get_date (const char *p, const time_t *now)
 {
   struct tm tm, tm0, *tmp;
   time_t Start;
 
   yyInput = p;
-  Start = (NULL != now) ? *now : time ((time_t *) NULL);
+  Start = now ? *now : time ((time_t *) NULL);
   tmp = localtime (&Start);
   yyYear = tmp->tm_year + TM_YEAR_ORIGIN;
   yyMonth = tmp->tm_mon + 1;

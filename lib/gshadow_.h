@@ -30,7 +30,7 @@
  */
 
 /*
- *	$Id: gshadow_.h 2763 2009-04-23 09:57:03Z nekral-guest $
+ *	$Id: gshadow_.h 3464 2011-08-14 13:16:54Z nekral-guest $
  */
 
 #ifndef	_H_GSHADOW
@@ -43,7 +43,7 @@
 struct sgrp {
 	char *sg_name;		/* group name */
 	char *sg_passwd;	/* group password */
-	char **sg_adm;		/* group administator list */
+	char **sg_adm;		/* group administrator list */
 	char **sg_mem;		/* group membership list */
 };
 

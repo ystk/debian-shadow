@@ -2,7 +2,7 @@
  * Copyright (c) 1991 - 1994, Julianne Frances Haugh
  * Copyright (c) 1996 - 2000, Marek Michałkiewicz
  * Copyright (c) 2000 - 2006, Tomasz Kłoczko
- * Copyright (c) 2007 - 2010, Nicolas François
+ * Copyright (c) 2007 - 2012, Nicolas François
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 #include <config.h>
 
-#ident "$Id: useradd.c 3272 2010-08-28 19:58:00Z nekral-guest $"
+#ident "$Id: useradd.c 3743 2012-05-25 11:51:53Z nekral-guest $"
 
 #include <assert.h>
 #include <ctype.h>
@@ -100,8 +100,6 @@ static const char *def_create_mail_spool = "no";
 static long def_inactive = -1;
 static const char *def_expire = "";
 
-static char def_file[] = USER_DEFAULTS_FILE;
-
 #define	VALID(s)	(strcspn (s, ":\n") == strlen (s))
 
 static const char *user_name = "";
@@ -113,8 +111,8 @@ static const char *user_home = "";
 static const char *user_shell = "";
 static const char *create_mail_spool = "";
 #ifdef WITH_SELINUX
-static const char *user_selinux = "";
-#endif
+static /*@notnull@*/const char *user_selinux = "";
+#endif				/* WITH_SELINUX */
 
 static long user_expire = -1;
 static bool is_shadow_pwd;
@@ -148,8 +146,11 @@ static bool
     rflg = false,		/* create a system account */
     sflg = false,		/* shell program for new account */
     uflg = false,		/* specify user ID for new account */
-    Uflg = false,		/* create a group having the same name as the user */
-    Zflg = false;		/* new selinux user */
+    Uflg = false;		/* create a group having the same name as the user */
+
+#ifdef WITH_SELINUX
+#define Zflg ('\0' != *user_selinux)
+#endif				/* WITH_SELINUX */
 
 static bool home_added = false;
 
@@ -166,7 +167,7 @@ static bool home_added = false;
 #define E_NAME_IN_USE	9	/* username already in use */
 #define E_GRP_UPDATE	10	/* can't update group file */
 #define E_HOMEDIR	12	/* can't create home directory */
-#define	E_MAIL_SPOOL	13	/* can't create mail spool */
+#define E_SE_UPDATE	14	/* can't update SELinux user mapping */
 
 #define DGROUP			"GROUP="
 #define DHOME			"HOME="
@@ -184,9 +185,6 @@ static int set_defaults (void);
 static int get_groups (char *);
 static void usage (int status);
 static void new_pwent (struct passwd *);
-#ifdef WITH_SELINUX
-static void selinux_update_mapping (void);
-#endif
 
 static long scale_age (long);
 static void new_spent (struct spwd *);
@@ -300,7 +298,7 @@ static void get_defaults (void)
 	 * Open the defaults file for reading.
 	 */
 
-	fp = fopen (def_file, "r");
+	fp = fopen (USER_DEFAULTS_FILE, "r");
 	if (NULL == fp) {
 		return;
 	}
@@ -333,7 +331,7 @@ static void get_defaults (void)
 				         Prog, cp);
 				fprintf (stderr,
 				         _("%s: the %s configuration in %s will be ignored\n"),
-				         Prog, DGROUP, def_file);
+				         Prog, DGROUP, USER_DEFAULTS_FILE);
 			} else {
 				def_group = grp->gr_gid;
 				def_gname = xstrdup (grp->gr_name);
@@ -362,10 +360,10 @@ static void get_defaults (void)
 			    || (def_inactive < -1)) {
 				fprintf (stderr,
 				         _("%s: invalid numeric argument '%s'\n"),
-				         Prog, optarg);
+				         Prog, cp);
 				fprintf (stderr,
 				         _("%s: the %s configuration in %s will be ignored\n"),
-				         Prog, DINACT, def_file);
+				         Prog, DINACT, USER_DEFAULTS_FILE);
 				def_inactive = -1;
 			}
 		}
@@ -467,7 +465,7 @@ static int set_defaults (void)
 	 * temporary file, using any new values. Each line is checked
 	 * to insure that it is not output more than once.
 	 */
-	ifp = fopen (def_file, "r");
+	ifp = fopen (USER_DEFAULTS_FILE, "r");
 	if (NULL == ifp) {
 		fprintf (ofp, "# useradd defaults file\n");
 		goto skip;
@@ -484,7 +482,7 @@ static int set_defaults (void)
 			if (feof (ifp) == 0) {
 				fprintf (stderr,
 				         _("%s: line too long in %s: %s..."),
-				         Prog, def_file, buf);
+				         Prog, USER_DEFAULTS_FILE, buf);
 				(void) fclose (ifp);
 				return -1;
 			}
@@ -556,13 +554,14 @@ static int set_defaults (void)
 	/*
 	 * Rename the current default file to its backup name.
 	 */
-	wlen = snprintf (buf, sizeof buf, "%s-", def_file);
+	wlen = snprintf (buf, sizeof buf, "%s-", USER_DEFAULTS_FILE);
 	assert (wlen < (int) sizeof buf);
-	if ((rename (def_file, buf) != 0) && (ENOENT != errno)) {
+	unlink (buf);
+	if ((link (USER_DEFAULTS_FILE, buf) != 0) && (ENOENT != errno)) {
 		int err = errno;
 		fprintf (stderr,
-		         _("%s: rename: %s: %s"),
-		         Prog, def_file, strerror (err));
+		         _("%s: Cannot create backup file (%s): %s\n"),
+		         Prog, buf, strerror (err));
 		unlink (new_file);
 		return -1;
 	}
@@ -570,10 +569,10 @@ static int set_defaults (void)
 	/*
 	 * Rename the new default file to its correct name.
 	 */
-	if (rename (new_file, def_file) != 0) {
+	if (rename (new_file, USER_DEFAULTS_FILE) != 0) {
 		int err = errno;
 		fprintf (stderr,
-		         _("%s: rename: %s: %s"),
+		         _("%s: rename: %s: %s\n"),
 		         Prog, new_file, strerror (err));
 		return -1;
 	}
@@ -633,6 +632,8 @@ static int get_groups (char *list)
 		/*
 		 * There must be a match, either by GID value or by
 		 * string name.
+		 * FIXME: It should exist according to gr_locate,
+		 *        otherwise, we can't change its members
 		 */
 		if (NULL == grp) {
 			fprintf (stderr,
@@ -696,9 +697,11 @@ static void usage (int status)
 	FILE *usageout = (E_SUCCESS != status) ? stderr : stdout;
 	(void) fprintf (usageout,
 	                _("Usage: %s [options] LOGIN\n"
+	                  "       %s -D\n"
+	                  "       %s -D [options]\n"
 	                  "\n"
 	                  "Options:\n"),
-	                Prog);
+	                Prog, Prog, Prog);
 	(void) fputs (_("  -b, --base-dir BASE_DIR       base directory for the home directory of the\n"
 	                "                                new account\n"), usageout);
 	(void) fputs (_("  -c, --comment COMMENT         GECOS field of the new account\n"), usageout);
@@ -723,12 +726,13 @@ static void usage (int status)
 	                "                                (non-unique) UID\n"), usageout);
 	(void) fputs (_("  -p, --password PASSWORD       encrypted password of the new account\n"), usageout);
 	(void) fputs (_("  -r, --system                  create a system account\n"), usageout);
+	(void) fputs (_("  -R, --root CHROOT_DIR         directory to chroot into\n"), usageout);
 	(void) fputs (_("  -s, --shell SHELL             login shell of the new account\n"), usageout);
 	(void) fputs (_("  -u, --uid UID                 user ID of the new account\n"), usageout);
 	(void) fputs (_("  -U, --user-group              create a group with the same name as the user\n"), usageout);
 #ifdef WITH_SELINUX
 	(void) fputs (_("  -Z, --selinux-user SEUSER     use a specific SEUSER for the SELinux user mapping\n"), usageout);
-#endif
+#endif				/* WITH_SELINUX */
 	(void) fputs ("\n", usageout);
 	exit (status);
 }
@@ -788,11 +792,11 @@ static void new_spent (struct spwd *spent)
 		spent->sp_inact = scale_age (def_inactive);
 		spent->sp_expire = scale_age (user_expire);
 	} else {
-		spent->sp_min = scale_age (-1);
-		spent->sp_max = scale_age (-1);
-		spent->sp_warn = scale_age (-1);
-		spent->sp_inact = scale_age (-1);
-		spent->sp_expire = scale_age (-1);
+		spent->sp_min = -1;
+		spent->sp_max = -1;
+		spent->sp_warn = -1;
+		spent->sp_inact = -1;
+		spent->sp_expire = -1;
 	}
 	spent->sp_flag = SHADOW_SP_FLAG_UNSET;
 }
@@ -821,6 +825,8 @@ static void grp_update (void)
 	/*
 	 * Scan through the entire group file looking for the groups that
 	 * the user is a member of.
+	 * FIXME: we currently do not check that all groups of user_groups
+	 *        were completed with the new user.
 	 */
 	for (gr_rewind (), grp = gr_next (); NULL != grp; grp = gr_next ()) {
 
@@ -894,6 +900,10 @@ static void grp_update (void)
 		/*
 		 * See if the user specified this group as one of their
 		 * concurrent groups.
+		 * FIXME: is it really needed?
+		 *        This would be important only if the group is in
+		 *        user_groups. All these groups should be checked
+		 *        for existence with gr_locate already.
 		 */
 		if (gr_locate (sgrp->sg_name) == NULL) {
 			continue;
@@ -972,38 +982,39 @@ static void process_flags (int argc, char **argv)
 		 */
 		int c;
 		static struct option long_options[] = {
-			{"base-dir", required_argument, NULL, 'b'},
-			{"comment", required_argument, NULL, 'c'},
-			{"home-dir", required_argument, NULL, 'd'},
-			{"defaults", no_argument, NULL, 'D'},
-			{"expiredate", required_argument, NULL, 'e'},
-			{"inactive", required_argument, NULL, 'f'},
-			{"gid", required_argument, NULL, 'g'},
-			{"groups", required_argument, NULL, 'G'},
-			{"help", no_argument, NULL, 'h'},
-			{"skel", required_argument, NULL, 'k'},
-			{"key", required_argument, NULL, 'K'},
-			{"create-home", no_argument, NULL, 'm'},
-			{"no-create-home", no_argument, NULL, 'M'},
-			{"no-log-init", no_argument, NULL, 'l'},
-			{"no-user-group", no_argument, NULL, 'N'},
-			{"non-unique", no_argument, NULL, 'o'},
-			{"password", required_argument, NULL, 'p'},
-			{"system", no_argument, NULL, 'r'},
-			{"shell", required_argument, NULL, 's'},
+			{"base-dir",       required_argument, NULL, 'b'},
+			{"comment",        required_argument, NULL, 'c'},
+			{"home-dir",       required_argument, NULL, 'd'},
+			{"defaults",       no_argument,       NULL, 'D'},
+			{"expiredate",     required_argument, NULL, 'e'},
+			{"inactive",       required_argument, NULL, 'f'},
+			{"gid",            required_argument, NULL, 'g'},
+			{"groups",         required_argument, NULL, 'G'},
+			{"help",           no_argument,       NULL, 'h'},
+			{"skel",           required_argument, NULL, 'k'},
+			{"key",            required_argument, NULL, 'K'},
+			{"no-log-init",    no_argument,       NULL, 'l'},
+			{"create-home",    no_argument,       NULL, 'm'},
+			{"no-create-home", no_argument,       NULL, 'M'},
+			{"no-user-group",  no_argument,       NULL, 'N'},
+			{"non-unique",     no_argument,       NULL, 'o'},
+			{"password",       required_argument, NULL, 'p'},
+			{"system",         no_argument,       NULL, 'r'},
+			{"root",           required_argument, NULL, 'R'},
+			{"shell",          required_argument, NULL, 's'},
+			{"uid",            required_argument, NULL, 'u'},
+			{"user-group",     no_argument,       NULL, 'U'},
 #ifdef WITH_SELINUX
-			{"selinux-user", required_argument, NULL, 'Z'},
-#endif
-			{"uid", required_argument, NULL, 'u'},
-			{"user-group", no_argument, NULL, 'U'},
+			{"selinux-user",   required_argument, NULL, 'Z'},
+#endif				/* WITH_SELINUX */
 			{NULL, 0, NULL, '\0'}
 		};
 		while ((c = getopt_long (argc, argv,
 #ifdef WITH_SELINUX
-		                         "b:c:d:De:f:g:G:hk:K:lmMNop:rs:u:UZ:",
-#else
-		                         "b:c:d:De:f:g:G:hk:K:lmMNop:rs:u:U",
-#endif
+		                         "b:c:d:De:f:g:G:hk:K:lmMNop:rR:s:u:UZ:",
+#else				/* !WITH_SELINUX */
+		                         "b:c:d:De:f:g:G:hk:K:lmMNop:rR:s:u:U",
+#endif				/* !WITH_SELINUX */
 		                         long_options, NULL)) != -1) {
 			switch (c) {
 			case 'b':
@@ -1058,9 +1069,10 @@ static void process_flags (int argc, char **argv)
 				}
 
 				/*
-				 * -e "" is allowed - it's a no-op without /etc/shadow
+				 * -e "" is allowed without /etc/shadow
+				 * (it's a no-op in such case)
 				 */
-				if (('\0' != *optarg) && !is_shadow_pwd) {
+				if ((-1 != user_expire) && !is_shadow_pwd) {
 					fprintf (stderr,
 					         _("%s: shadow passwords required for -e\n"),
 					         Prog);
@@ -1077,7 +1089,7 @@ static void process_flags (int argc, char **argv)
 					fprintf (stderr,
 					         _("%s: invalid numeric argument '%s'\n"),
 					         Prog, optarg);
-					usage (E_USAGE);
+					exit (E_BAD_ARG);
 				}
 				/*
 				 * -f -1 is allowed
@@ -1170,6 +1182,8 @@ static void process_flags (int argc, char **argv)
 			case 'r':
 				rflg = true;
 				break;
+			case 'R': /* no-op, handled in process_root_flag () */
+				break;
 			case 's':
 				if (   ( !VALID (optarg) )
 				    || (   ('\0' != optarg[0])
@@ -1201,7 +1215,6 @@ static void process_flags (int argc, char **argv)
 			case 'Z':
 				if (is_selinux_enabled () > 0) {
 					user_selinux = optarg;
-					Zflg = true;
 				} else {
 					fprintf (stderr,
 					         _("%s: -Z requires SELinux enabled kernel\n"),
@@ -1210,7 +1223,7 @@ static void process_flags (int argc, char **argv)
 					exit (E_BAD_ARG);
 				}
 				break;
-#endif
+#endif				/* WITH_SELINUX */
 			default:
 				usage (E_USAGE);
 			}
@@ -1267,7 +1280,7 @@ static void process_flags (int argc, char **argv)
 			usage (E_USAGE);
 		}
 
-		if (uflg || oflg || Gflg || dflg || cflg || mflg) {
+		if (uflg || Gflg || dflg || cflg || mflg) {
 			usage (E_USAGE);
 		}
 	} else {
@@ -1508,7 +1521,14 @@ static void new_grent (struct group *grent)
 {
 	memzero (grent, sizeof *grent);
 	grent->gr_name = (char *) user_name;
-	grent->gr_passwd = SHADOW_PASSWD_STRING;	/* XXX warning: const */
+#ifdef  SHADOWGRP
+	if (is_shadow_grp) {
+		grent->gr_passwd = SHADOW_PASSWD_STRING;	/* XXX warning: const */
+	} else
+#endif				/* SHADOWGRP */
+	{
+		grent->gr_passwd = "!";	/* XXX warning: const */
+	}
 	grent->gr_gid = user_gid;
 	grent->gr_mem = &empty_list;
 }
@@ -1727,32 +1747,6 @@ static void usr_update (void)
 	}
 }
 
-#ifdef WITH_SELINUX
-static void selinux_update_mapping (void) {
-	if (is_selinux_enabled () <= 0) return;
-
-	if ('\0' != *user_selinux) { /* must be done after passwd write() */
-		const char *argv[7];
-		argv[0] = "/usr/sbin/semanage";
-		argv[1] = "login";
-		argv[2] = "-a";
-		argv[3] = "-s";
-		argv[4] = user_selinux;
-		argv[5] = user_name;
-		argv[6] = NULL;
-		if (safe_system (argv[0], argv, NULL, false) != 0) {
-			fprintf (stderr,
-			         _("%s: warning: the user name %s to %s SELinux user mapping failed.\n"),
-			         Prog, user_name, user_selinux);
-#ifdef WITH_AUDIT
-			audit_logger (AUDIT_ADD_USER, Prog,
-			              "adding SELinux user mapping",
-			              user_name, (unsigned int) user_id, 0);
-#endif
-		}
-	}
-}
-#endif
 /*
  * create_home - create the user's home directory
  *
@@ -1862,10 +1856,6 @@ int main (int argc, char **argv)
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 
-#ifdef WITH_AUDIT
-	audit_help_open ();
-#endif
-
 	/*
 	 * Get my name so that I can use it to report errors.
 	 */
@@ -1875,7 +1865,12 @@ int main (int argc, char **argv)
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
+	process_root_flag ("-R", argc, argv);
+
 	OPENLOG ("useradd");
+#ifdef WITH_AUDIT
+	audit_help_open ();
+#endif
 
 	sys_ngroups = sysconf (_SC_NGROUPS_MAX);
 	user_groups = (char **) xmalloc ((1 + sys_ngroups) * sizeof (char *));
@@ -1917,13 +1912,16 @@ int main (int argc, char **argv)
 		retval = pam_acct_mgmt (pamh, 0);
 	}
 
-	if (NULL != pamh) {
-		(void) pam_end (pamh, retval);
-	}
 	if (PAM_SUCCESS != retval) {
-		fprintf (stderr, _("%s: PAM authentication failed\n"), Prog);
+		fprintf (stderr, _("%s: PAM: %s\n"),
+		         Prog, pam_strerror (pamh, retval));
+		SYSLOG((LOG_ERR, "%s", pam_strerror (pamh, retval)));
+		if (NULL != pamh) {
+			(void) pam_end (pamh, retval);
+		}
 		fail_exit (1);
 	}
+	(void) pam_end (pamh, retval);
 #endif				/* USE_PAM */
 #endif				/* ACCT_TOOLS_SETUID */
 
@@ -2060,8 +2058,20 @@ int main (int argc, char **argv)
 	close_files ();
 
 #ifdef WITH_SELINUX
-	selinux_update_mapping ();
-#endif
+	if (Zflg) {
+		if (set_seuser (user_name, user_selinux) != 0) {
+			fprintf (stderr,
+			         _("%s: warning: the user name %s to %s SELinux user mapping failed.\n"),
+			         Prog, user_name, user_selinux);
+#ifdef WITH_AUDIT
+			audit_logger (AUDIT_ADD_USER, Prog,
+			              "adding SELinux user mapping",
+			              user_name, (unsigned int) user_id, 0);
+#endif				/* WITH_AUDIT */
+			fail_exit (E_SE_UPDATE);
+		}
+	}
+#endif				/* WITH_SELINUX */
 
 	nscd_flush_cache ("passwd");
 	nscd_flush_cache ("group");
