@@ -1,3 +1,110 @@
+shadow (1:4.2-2) unstable; urgency=low
+
+  * The "Soumaintrain" release
+  * The "Rigotte de Condrieu" release was 4.2-1
+  * Upload to unstable
+  * Last upload integrates the use of dh_autoreconf which has the same
+    effect then Eric Dorland's patch in 1:4.1.5.1-1.1 NMU to drop the
+    use of automake1.9. Closes: #724434
+
+  [ Samuel Thibault ]
+  * Enable the login package on hurd-any, but without /bin/login, still provided
+    by the hurd package. Closes: #737805.
+    This fix was accidentally forgotten in 1:4.2-1
+
+  [ Josh Triplett ]
+  * use the new pam_exec functionality from pam 1.1.8-1 to implement the
+    dynamic motd, rather than using /run/motd.dynamic from initscripts.
+    This will allow initscripts to drop /etc/init.d/motd.
+    Closes: #741129
+
+  [ Laurent Bigonville ]
+  * Enable libaudit support. Closes: #745774
+
+  [ Trần Ngọc Quân ]
+  * Vietnamese translation update.
+
+  [ Christian Perrier ]
+  * Add a lintian override for newuidmap and newgidmap setuid binaries
+  * Add upstream signing key as debian/upstream-signing-key.asc
+  * Check upstream signing key in debian/watch
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 04 May 2014 19:39:07 +0200
+
+shadow (1:4.2-1) experimental; urgency=low
+
+  [ Nicolas FRANCOIS (Nekral) ]
+  * New upstream release. Fixes:
+    - Invalid free() in su fixed by using strdup(). Thanks to Serge
+      Hallyn for the patch. Closes: #691459
+    - Kill the child process group, rather than just the
+      immediate child; this is needed now that su no
+      longer starts a controlling terminal when not running an
+      interactive shell. Thanks to Colin Watson for the patch.
+      Closes: #713979
+    - German manpages translation update. Closes: #679152
+    - Improve login.defs (typographic errors and better format).
+      Closes: #685415
+    - Russian translation update. Closes: #718356
+    - Do not assume random() is limited by RAND_MAX.  Closes: #677275
+    - Support C libraries with unknown fields in struct passwd.
+      Closes: #675824
+    - su: child cleanup is performed before terminating PAM sessions. This
+      avoids anoying "...terminated" messages when PAM module send signal to
+      su during session close. Closes: #670132
+    - vipw/vigr is checking arguments provided after options. Closes: #677812
+    - Updated Japanese translation. Closes: #720004
+    - vipw: Fix error reporting when editor fails. Closes: #688260
+  * Moved to git: replace Vcs-Git in place of Vcs-Svn and adapt
+    Vcs-Browser.
+  * Add pam_loginuid to login PAM settings. Closes: #677441
+  * passwd.install: add new subuid.5 and subgid.5 manpages
+  * debian/rules, debian/control, debian/uidmap.install: create new uidmap
+    package containing the new setuid-root binaries newuidmap and newgidmap 
+    Set uidmap as priority optional.
+  * debian/login.su.pam: Enable pam_limits by default. Closes: #705301
+  * debian/rules: Set default editor to sensible-editor for vipw.
+    Closes: #688252
+
+  [ Micah Anderson ]
+  * added debian/patches/userns to enable use of subuids, plus some bugfix 
+    patches on top of them, patches from Eric Biederman, pulled from
+    Ubuntu. Closes: #739981
+  * Allow LXC devices (lxc/console, lxc/tty[1234]) in securetty.linux
+  * Update documentation of UMASK: Explain that USERGROUPS_ENAB will modify
+    this default for UPGs. (Closes: #583971)
+  * login.postinst: install a default /etc/subuid and /etc/subgid
+  * fix installation of setuid/setgid/newuidmap/newgid/map man pages
+
+  [ Laurent Bigonville ]
+  * Switch to dpkg-source 3.0 (quilt) format
+  * Add build-dependency against bison
+  * Call dh-autoreconf since we need to regenerate all the autofoo files
+  
+  [ Philippe Grégoire ]
+  * Fix 1000_configure_userns to avoid dropping a needed #endif
+    Closes: #744877
+
+  [ Christian Perrier ]
+  * Bump Standards to 3.9.5 (checked)
+  * Use 'set -e' in postinst scripts and not in thei shebang line
+  * Explicitly point to GPL-2 document in debian/copyright
+
+ -- Christian Perrier <bubulle@debian.org>  Tue, 22 Apr 2014 09:01:42 +0200
+
+shadow (1:4.1.5.1-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+
+  [ Eric Dorland ]
+  * Switch to automake1.11. (Closes: #724434)
+
+  [ Samuel Thibault ]
+  * Enable the login package on hurd-any, but without /bin/login, still provided
+    by the hurd package. Closes: #737805.
+
+ -- Samuel Thibault <sthibault@debian.org>  Sun, 16 Mar 2014 20:58:24 +0100
+
 shadow (1:4.1.5.1-1) unstable; urgency=low
 
   * The "Gruyère" release.

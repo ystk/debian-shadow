@@ -3,14 +3,11 @@
 
 DEB_HOST_ARCH_OS := $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
-ifeq ($(DEB_HOST_ARCH_OS),hurd)
-# Do not build login on The Hurd
-override DEB_ARCH_PACKAGES=passwd
-endif
-
 # Enable PIE, BINDNOW, and possible future flags.
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
+# Call autoreconf since we need to regenerate all the autofoo files
+include /usr/share/cdbs/1/rules/autoreconf.mk
 include /usr/share/cdbs/1/rules/debhelper.mk
 # Specify where dh_install will find the files that it needs to move:
 DEB_DH_INSTALL_SOURCEDIR=debian/tmp
@@ -20,23 +17,22 @@ DEB_DH_INSTALL_SOURCEDIR=debian/tmp
 DEB_DESTDIR=$(CURDIR)/debian/tmp
 
 include /usr/share/cdbs/1/class/autotools.mk
-# Automatically update autoconf, etc.
-DEB_AUTO_UPDATE_ACLOCAL  = 1.9
-DEB_AUTO_UPDATE_AUTOCONF = 1.9
-DEB_AUTO_UPDATE_AUTOMAKE = 1.9
-DEB_AUTO_UPDATE_LIBTOOL = pre
 
 # Adds extra options when calling the configure script:
-DEB_CONFIGURE_EXTRA_FLAGS := --disable-shared --without-libcrack --without-audit --mandir=/usr/share/man --with-libpam --enable-shadowgrp --enable-man --disable-account-tools-setuid --with-group-name-max-length=32 --without-acl --without-attr --without-tcb
+DEB_CONFIGURE_EXTRA_FLAGS := --disable-shared --without-libcrack --mandir=/usr/share/man --with-libpam --enable-shadowgrp --enable-man --disable-account-tools-setuid --with-group-name-max-length=32 --without-acl --without-attr --without-tcb
 ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
   DEB_CONFIGURE_EXTRA_FLAGS += --host=$(DEB_HOST_GNU_TYPE)
 endif
 
-# Automatically controls patching at build time:
-include /usr/share/cdbs/1/rules/patchsys-quilt.mk
+# Set the default editor for vipw/vigr
+CFLAGS += -DDEFAULT_EDITOR=\\\"sensible-editor\\\"
 
 # Add extras to the install process:
 binary-install/login::
+ifeq ($(DEB_HOST_ARCH_OS),hurd)
+	# /bin/login is provided by the hurd package.
+	rm -f debian/login/bin/login
+endif
 	dh_installpam -p login
 	dh_installpam -p login --name=su
 	install -c -m 444 debian/login.defs debian/login/etc/login.defs
@@ -55,17 +51,16 @@ binary-install/passwd::
 	dh_installpam -p passwd --name=chsh
 	dh_installpam -p passwd --name=chpasswd
 	dh_installpam -p passwd --name=newusers
-ifeq ($(DEB_HOST_ARCH_OS),hurd)
-# login is not built on The Hurd, but some utilities of passwd depends on
-# /etc/login.defs.
-	install -c -m 444 debian/login.defs debian/passwd/etc/login.defs
-endif
 	install -c -m 644 debian/useradd.default debian/passwd/etc/default/useradd
 	install -d debian/passwd/sbin
 	install -c -m 555 debian/shadowconfig.sh debian/passwd/sbin/shadowconfig
 	install -c -m 444 debian/cpgr.8 debian/passwd/usr/share/man/man8
 	install -c -m 444 debian/cppw.8 debian/passwd/usr/share/man/man8
 	dh_lintian -p passwd
+
+binary-predeb/uidmap::
+	chmod u+s debian/uidmap/usr/bin/newuidmap
+	chmod u+s debian/uidmap/usr/bin/newgidmap
 
 binary-predeb/login::
 	# No real need for login to be setuid root
