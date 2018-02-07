@@ -4,6 +4,9 @@
 
 503_shadowconfig.8
 008_login_log_failure_in_FTMP
+301-CVE-2017-2616-su-properly-clear-child-PID.patch
+302-CVE-2016-6252-fix-integer-overflow.patch
+303-Reset-pid_child-only-if-waitpid-was-successful.patch
 429_login_FAILLOG_ENAB
 401_cppw_src.dpatch
 # 402 should be merged in 401, but should be reviewed by SE Linux experts first

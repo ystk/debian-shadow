@@ -1,3 +1,27 @@
+shadow (1:4.2-3+deb8u4) jessie-security; urgency=high
+
+  * Non-maintainer upload by the Security Team.
+  * Reset pid_child only if waitpid was successful.
+    This is a regression fix for CVE-2017-2616. If su receives a signal like
+    SIGTERM, it is not propagated to the child. (Closes: #862806)
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Wed, 17 May 2017 12:58:54 +0200
+
+shadow (1:4.2-3+deb8u3) jessie-security; urgency=high
+
+  * Fix integer overflow in getulong.c (CVE-2016-6252) (Closes: #832170)
+  * Refresh patches
+  * Add myself to uploaders replacing Nicolas FRANCOIS (Nekral)
+
+ -- Balint Reczey <balint@balintreczey.hu>  Fri, 24 Feb 2017 00:57:31 +0100
+
+shadow (1:4.2-3+deb8u2) jessie-security; urgency=high
+
+  * Non-maintainer upload by the Security Team.
+  * su: properly clear child PID (CVE-2017-2616) (Closes: #855943)
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Thu, 23 Feb 2017 17:21:08 +0100
+
 shadow (1:4.2-3+deb8u1) jessie; urgency=medium
 
   * Non-maintainer upload.

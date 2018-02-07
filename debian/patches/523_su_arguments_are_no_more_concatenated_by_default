@@ -8,10 +8,8 @@ Etch.
 
 Status wrt upstream: This patch is Debian specific.
 
-Index: git/src/su.c
-===================================================================
---- git.orig/src/su.c
-+++ git/src/su.c
+--- a/src/su.c
++++ b/src/su.c
 @@ -104,6 +104,19 @@
  /* If nonzero, change some environment vars to indicate the user su'd to. */
  static bool change_environment = true;
@@ -32,7 +30,7 @@ Index: git/src/su.c
  #ifdef USE_PAM
  static pam_handle_t *pamh = NULL;
  static int caught = 0;
-@@ -949,6 +962,8 @@
+@@ -964,6 +977,8 @@
  	int ret;
  #endif				/* USE_PAM */
  
@@ -41,7 +39,7 @@ Index: git/src/su.c
  	(void) setlocale (LC_ALL, "");
  	(void) bindtextdomain (PACKAGE, LOCALEDIR);
  	(void) textdomain (PACKAGE);
-@@ -1156,7 +1171,7 @@
+@@ -1171,7 +1186,7 @@
  		 * resulting string is always given to the shell with its
  		 * -c option.
  		 */
