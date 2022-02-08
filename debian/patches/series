@@ -38,3 +38,5 @@
 1000_configure_userns
 1010_vietnamese_translation
 1020_fix_user_busy_errors
+CVE-2017-12424.patch
+CVE-2018-7169.patch

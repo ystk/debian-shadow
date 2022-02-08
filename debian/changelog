@@ -1,3 +1,18 @@
+shadow (1:4.2-3+deb8u5) jessie-security; urgency=high
+
+  * Non-maintainer upload by the ELTS team.
+  * SECURITY UPDATE: Crash or buffer overflow
+    - debian/patches/CVE-2017-12424.patch: fix buffer overflow if
+      NULL line is present in db in lib/commonio.c.
+    - CVE-2017-12424
+  * SECURITY UPDATE: Access to privileged information
+    - debian/patches/CVE-2018-7169.patch: newgidmap:
+      enforce setgroups=deny if self-mapping a group in
+      src/newgidmap.c.
+    - CVE-2018-7169
+
+ -- Utkarsh Gupta <utkarsh@ubuntu.com>  Tue, 01 Feb 2022 04:40:19 +0530
+
 shadow (1:4.2-3+deb8u4) jessie-security; urgency=high
 
   * Non-maintainer upload by the Security Team.
