@@ -40,3 +40,6 @@
 1020_fix_user_busy_errors
 CVE-2017-12424.patch
 CVE-2018-7169.patch
+
+CVE-2023-4641.patch
+CVE-2023-29383.patch

@@ -1,3 +1,19 @@
+shadow (1:4.2-3+deb8u6) jessie-security; urgency=high
+
+  * Non-maintainer upload by the ELTS Security Team.
+  * CVE-2023-4641: When asking for a new password, shadow-utils asks the
+    password twice. If the password fails on the second attempt,
+    shadow-utils fails in cleaning the buffer used to store the first
+    entry. This may allow an attacker with enough access to retrieve the
+    password from the memory. (Closes: #1051062)
+  * CVE-2023-29383: It is possible to inject control characters into
+    fields provided to the SUID program chfn (change finger). Although it
+    is not possible to exploit this directly (e.g., adding a new user
+    fails because \n is in the block list), it is possible to misrepresent
+    the /etc/passwd file when viewed. (Closes: #1034482)
+
+ -- Sylvain Beucler <beuc@debian.org>  Tue, 15 Apr 2025 14:26:11 +0200
+  
 shadow (1:4.2-3+deb8u5) jessie-security; urgency=high
 
   * Non-maintainer upload by the ELTS team.
